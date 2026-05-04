@@ -69,15 +69,13 @@ export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
                     href={e.sourceRef}
                     target="_blank"
                     rel="noreferrer"
-                    className="d-inline-block text-truncate"
-                    style={{ maxWidth: 300 }}
                     title={e.title}
                   >
-                    {e.title}
+                    {e.title.length > 96 ? e.title.slice(0, 96) + '…' : e.title}
                   </a>
                 ) : (
-                  <span className="d-inline-block text-truncate" style={{ maxWidth: 300 }} title={e.title}>
-                    {e.title}
+                  <span title={e.title}>
+                    {e.title.length > 96 ? e.title.slice(0, 96) + '…' : e.title}
                   </span>
                 )}
               </td>

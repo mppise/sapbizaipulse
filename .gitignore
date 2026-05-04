@@ -13,9 +13,6 @@ _cfg/*.env
 .env.*
 !.env.example
 
-# ── Kyma manifests with live credentials ─────────────────────────────────────
-deploy/kyma-secret.yaml
-
 # ── macOS ─────────────────────────────────────────────────────────────────────
 .DS_Store
 
