@@ -1,0 +1,32 @@
+SpecGantry — Spec-Driven Development for Claude Code
+Copyright 2026 Mangesh Pise (mppise@gmail.com)
+
+This product is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+---
+
+THIRD-PARTY ACKNOWLEDGEMENTS
+
+This project is designed to operate as a configuration and skill framework
+for Claude Code (https://claude.ai/code), a product of Anthropic, PBC.
+
+SpecGantry does NOT contain, include, incorporate, or derive from any
+Anthropic source code, SDK, libraries, or proprietary assets. No Anthropic
+intellectual property is distributed as part of this project. The Claude Code
+runtime is a separate product and must be installed independently by the user
+under Anthropic's own terms of service.
+
+SpecGantry is an independent, community-developed project and is NOT
+affiliated with, endorsed by, sponsored by, or officially supported by
+Anthropic, PBC in any way. "Claude" and "Claude Code" are trademarks of
+Anthropic, PBC. Their use here is solely for descriptive purposes to identify
+the runtime environment with which this framework is compatible.
+
+---
+
+This NOTICE file is required to be included in all copies or substantial
+portions of the Work, as specified by the Apache License, Version 2.0,
+Section 4(d).

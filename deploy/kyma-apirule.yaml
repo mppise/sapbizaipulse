@@ -1,0 +1,20 @@
+apiVersion: gateway.kyma-project.io/v1beta1
+kind: APIRule
+metadata:
+  name: sap-bizai-pulse
+spec:
+  gateway: kyma-gateway.kyma-system.svc.cluster.local
+  host: sap-bizai-pulse.c-5a930ed.kyma.ondemand.com
+  service:
+    name: sap-bizai-pulse
+    port: 80
+  rules:
+    - path: /.*
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      accessStrategies:
+        - handler: no_auth

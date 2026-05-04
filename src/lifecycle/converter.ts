@@ -1,0 +1,382 @@
+import MarkdownIt from 'markdown-it';
+
+const md = new MarkdownIt({
+  html: true,
+  xhtmlOut: false,
+  breaks: false,
+  linkify: true,
+  typographer: false,
+});
+
+interface SectionMeta { icon: string; label: string; color: string; tabKey: string; }
+
+const SECTION_META: Record<string, SectionMeta> = {
+  'the big picture': { icon: 'bi-binoculars', label: 'The Big Picture', color: '#0070f3', tabKey: 'big-picture' },
+  'strategy in motion': { icon: 'bi-graph-up-arrow', label: 'Strategy in Motion', color: '#1a7f4b', tabKey: 'strategy' },
+  'under the hood': { icon: 'bi-gear', label: 'Under the Hood', color: '#6b3fa0', tabKey: 'tech' },
+};
+const TAB_ORDER = ['the big picture', 'strategy in motion', 'under the hood'];
+
+// Split HTML on <h3> boundaries → { preamble, sections: [{heading, content}] }
+function splitOnH3(html: string): { preamble: string; sections: { heading: string; content: string }[] } {
+  const sections: { heading: string; content: string }[] = [];
+  const re = /<h3>([^<]*)<\/h3>/g;
+  let lastIndex = 0;
+  let preamble = html;
+  let first = true;
+  let match: RegExpExecArray | null;
+
+  while ((match = re.exec(html)) !== null) {
+    if (first) {
+      preamble = html.slice(0, match.index);
+      first = false;
+    } else {
+      sections[sections.length - 1].content = html.slice(lastIndex, match.index);
+    }
+    sections.push({ heading: match[1].trim(), content: '' });
+    lastIndex = match.index + match[0].length;
+  }
+  if (sections.length > 0) {
+    sections[sections.length - 1].content = html.slice(lastIndex);
+  }
+  return { preamble, sections };
+}
+
+function extractFirstBlockquote(html: string): string {
+  const m = html.match(/<blockquote>([\s\S]*?)<\/blockquote>/);
+  return m ? m[0] : '';
+}
+
+function buildTopicCard(id: string, title: string, innerHtml: string): string {
+  const { preamble, sections } = splitOnH3(innerHtml);
+  const teaser = extractFirstBlockquote(preamble);
+
+  const tabSections = TAB_ORDER.map((key, i) => {
+    const meta = SECTION_META[key];
+    const found = sections.find((s) => s.heading.toLowerCase() === key);
+    let content = found ? found.content : '<p class="text-muted small">No content.</p>';
+    // The Big Picture tab: strip the leading blockquote — it is already shown as the topic teaser
+    if (key === 'the big picture') {
+      content = content.replace(/<blockquote>[\s\S]*?<\/blockquote>\s*/, '');
+    }
+    const inputId = `tab-${id}-${meta.tabKey}`;
+    const checked = i === 0 ? ' checked' : '';
+    return { meta, content, inputId, checked };
+  });
+
+  const radioInputs = tabSections
+    .map(({ inputId, checked }) => `<input type="radio" class="tab-radio" name="tabs-${id}" id="${inputId}"${checked} />`)
+    .join('\n');
+
+  const tabLabels = tabSections
+    .map(({ meta, inputId }) =>
+      `<label class="tab-label" for="${inputId}" style="--tab-color:${meta.color}">` +
+      `<i class="bi ${meta.icon} tab-icon"></i>${meta.label}</label>`)
+    .join('\n');
+
+  const tabPanels = tabSections
+    .map(({ content }) => `<div class="tab-panel">${content}</div>`)
+    .join('\n');
+
+  const teaserHtml = teaser ? `<div class="topic-teaser">${teaser}</div>` : '';
+
+  return `
+<details class="topic-block" id="${id}">
+  <summary class="topic-summary">
+    <span class="topic-chevron">▸</span>
+    <span class="topic-title-text">${title}</span>
+    ${teaserHtml}
+  </summary>
+  <div class="topic-body">
+    ${radioInputs}
+    <div class="tab-bar">${tabLabels}</div>
+    <div class="tab-content">${tabPanels}</div>
+  </div>
+</details>`;
+}
+
+function buildAdditionalReading(innerHtml: string): string {
+  // Extract just the links for the sidebar — strip the <ul> wrapper, keep <li> items
+  return innerHtml;
+}
+
+function postProcess(html: string): { topics: string; sidebar: string } {
+  // Resolve ## Heading {#slug} → <h2 id="slug">
+  html = html.replace(
+    /<h([1-6])>([^<]+?)\s*\{#([\w-]+)\}<\/h\1>/g,
+    (_m, level, text, id) => `<h${level} id="${id}">${text.trim()}</h${level}>`,
+  );
+
+  // Split on <h2 id="..."> and render each block
+  const topicRe = /<h2 id="([^"]+)">([^<]+)<\/h2>([\s\S]*?)(?=<h2 id="|$)/g;
+  let topics = '';
+  let sidebar = '';
+  let match: RegExpExecArray | null;
+
+  while ((match = topicRe.exec(html)) !== null) {
+    const [, id, title, inner] = match;
+    if (id === 'additional-reading') {
+      sidebar = buildAdditionalReading(inner);
+    } else {
+      topics += buildTopicCard(id, title.trim(), inner);
+    }
+  }
+
+  return { topics, sidebar };
+}
+
+export function renderMarkdown(markdownContent: string): string {
+  try {
+    const { topics, sidebar } = postProcess(md.render(markdownContent));
+    const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const topicCount = (markdownContent.match(/^## .+ \{#(?!additional-reading)/mg) ?? []).length;
+    const topicLabel = topicCount > 0 ? `${topicCount} topic${topicCount !== 1 ? 's' : ''}` : '';
+
+    const sidebarHtml = sidebar ? `
+<aside class="nl-sidebar">
+  <div class="nl-sidebar-inner">
+    <div class="sidebar-heading"><i class="bi bi-journal-bookmark"></i> Additional Reading</div>
+    ${sidebar}
+  </div>
+</aside>` : '';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SAP Business AI Pulse</title>
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+  crossorigin="anonymous" />
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+<style>
+  :root {
+    --sap-blue:   #0070f3;
+    --sap-green:  #1a7f4b;
+    --sap-purple: #6b3fa0;
+    --sap-gold:   #e8a000;
+    --sap-bg:     #f5f6f8;
+    --sap-header: #000639;
+    --sap-text:   #1d2d3e;
+    --card-radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "72","72full",Arial,Helvetica,sans-serif; background: var(--sap-bg); color: var(--sap-text); margin: 0; }
+
+  /* ── Header ── */
+  .nl-header {
+    background: var(--sap-header); color: #fff;
+    padding: .65rem 2rem;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 1px 6px rgba(0,0,0,.35);
+  }
+  .nl-header-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+  }
+  .nl-header h1 { font-size: 1.05rem; font-weight: 700; margin: 0; color: #fff; white-space: nowrap; }
+  .nl-header .meta { font-size: .75rem; color: #a8b4c4; white-space: nowrap; }
+  .nl-disclaimer {
+    width: 100%;
+    font-size: .62rem;
+    color: #4e5e70;
+    font-style: italic;
+    margin-top: .1rem;
+  }
+  .pulse-icon {
+    font-size: .95rem;
+    color: var(--sap-gold);
+    margin-right: .4rem;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+  /* ── Two-pane layout ── */
+  .nl-layout {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── Main topic pane ── */
+  .nl-main { min-width: 0; }
+
+  /* ── Sidebar ── */
+  .nl-sidebar { min-width: 0; }
+  .nl-sidebar-inner {
+    background: #fff;
+    border-radius: var(--card-radius);
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    padding: 1rem 1.2rem 1.2rem;
+    position: sticky;
+    top: 4rem;
+  }
+  .sidebar-heading {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #888;
+    display: flex; align-items: center; gap: .4rem;
+    margin-bottom: .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid #e8eaed;
+  }
+  .sidebar-heading i { font-size: .9rem; }
+  .nl-sidebar-inner ul { margin: 0; padding: 0; list-style: none; }
+  .nl-sidebar-inner li { margin-bottom: .55rem; padding-bottom: .55rem; border-bottom: 1px solid #f0f2f5; }
+  .nl-sidebar-inner li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .nl-sidebar-inner a { color: var(--sap-blue); font-size: .8rem; line-height: 1.4; text-decoration: none; display: block; }
+  .nl-sidebar-inner a:hover { text-decoration: underline; }
+
+  /* ── Responsive: stack on narrow screens ── */
+  @media (max-width: 768px) {
+    .nl-layout {
+      grid-template-columns: 1fr;
+      padding: 0 1rem;
+    }
+    .nl-sidebar { order: 2; }
+    .nl-sidebar-inner { position: static; }
+    .nl-main { order: 1; }
+  }
+
+  /* ── Topic card ── */
+  details.topic-block {
+    background: #fff; border-radius: var(--card-radius);
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    border-left: 4px solid var(--sap-blue);
+    overflow: hidden;
+  }
+
+  summary.topic-summary {
+    display: grid;
+    grid-template-columns: 1.3rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: .6rem;
+    padding: .9rem 1.4rem .9rem 1rem;
+    cursor: pointer; list-style: none; user-select: none;
+  }
+  summary.topic-summary::-webkit-details-marker { display: none; }
+
+  .topic-chevron {
+    grid-column: 1; grid-row: 1 / 3;
+    align-self: center;
+    font-size: .72rem; color: #bbb;
+    transition: transform .2s;
+  }
+  details.topic-block[open] .topic-chevron { transform: rotate(90deg); }
+
+  .topic-title-text {
+    grid-column: 2; grid-row: 1;
+    font-size: 1rem; font-weight: 700; color: var(--sap-text); line-height: 1.3;
+  }
+  .topic-teaser {
+    grid-column: 2; grid-row: 2;
+    margin-top: .25rem;
+  }
+  .topic-teaser blockquote {
+    margin: 0; padding: .2rem .65rem;
+    border-left: 2px solid #d8dde6; background: transparent;
+    font-size: .81rem; font-style: italic; color: #888;
+    border-radius: 0;
+  }
+  .topic-teaser blockquote p { margin: 0; }
+
+  /* ── Topic body + tabs ── */
+  .topic-body { padding: 0 1.4rem 1.1rem; }
+
+  .tab-radio { display: none; }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 2px solid #e8eaed;
+    margin: 0 -1.4rem 1rem;
+    padding: 0 1.4rem;
+  }
+  .tab-label {
+    padding: .55rem 1rem;
+    font-size: .77rem; font-weight: 600; color: #999;
+    cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap; display: flex; align-items: center; gap: .3rem;
+  }
+  .tab-label:hover { color: var(--tab-color, var(--sap-blue)); }
+  .tab-icon { font-size: 1rem; line-height: 1; }
+
+  .tab-panel { display: none; }
+
+  /* Active tab panel and label — positional (radio 1/2/3 → panel/label 1/2/3) */
+  .tab-radio:nth-of-type(1):checked ~ .tab-content .tab-panel:nth-of-type(1),
+  .tab-radio:nth-of-type(2):checked ~ .tab-content .tab-panel:nth-of-type(2),
+  .tab-radio:nth-of-type(3):checked ~ .tab-content .tab-panel:nth-of-type(3) { display: block; }
+
+  .tab-radio:nth-of-type(1):checked ~ .tab-bar .tab-label:nth-of-type(1),
+  .tab-radio:nth-of-type(2):checked ~ .tab-bar .tab-label:nth-of-type(2),
+  .tab-radio:nth-of-type(3):checked ~ .tab-bar .tab-label:nth-of-type(3) {
+    color: var(--tab-color, var(--sap-blue));
+    border-bottom-color: var(--tab-color, var(--sap-blue));
+  }
+
+  .tab-panel h4 { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1rem 0 .4rem; }
+  .tab-panel p  { font-size: .9rem; line-height: 1.75; margin-bottom: .6rem; }
+  .tab-panel ul, .tab-panel ol { font-size: .9rem; padding-left: 1.3rem; }
+  .tab-panel li { margin-bottom: .3rem; }
+  .tab-panel a  { color: var(--sap-blue); }
+  .tab-panel blockquote {
+    background: #f4f6fa; border-left: 3px solid #c5cdd9; border-radius: 4px;
+    padding: .45rem .85rem; font-size: .85rem; font-style: italic; color: #666;
+    margin: 0 0 .85rem;
+  }
+  .tab-panel blockquote p { margin: 0; font-size: .85rem; }
+
+  /* ── HR (separators between topics — hidden, cards provide spacing) ── */
+  hr { display: none; }
+
+  /* ── Footer ── */
+  .nl-footer { text-align: center; font-size: .75rem; color: #aaa; padding: 2rem 1rem 3rem; }
+</style>
+</head>
+<body>
+
+<header class="nl-header">
+  <div class="nl-header-inner">
+    <h1><i class="bi bi-broadcast pulse-icon"></i>SAP Business AI Pulse</h1>
+    <div class="meta">${date}${topicLabel ? ` &nbsp;·&nbsp; ${topicLabel}` : ''}</div>
+  </div>
+</header>
+
+<div class="nl-layout">
+  <main class="nl-main">${topics}</main>
+  ${sidebarHtml}
+</div>
+
+<footer class="nl-footer">
+    <p>SAP Business AI Pulse · Generated by AI</p>
+    <p>Disclaimer: This is not an official SAP newsletter and is not endorsed by SAP. The content shared reflects independent perspectives and is provided for educational and informational purposes only. It should not be interpreted as SAP's official guidance, recommendations, or position.</p>
+</footer>
+
+<script>
+document.querySelector('.nl-main').addEventListener('click', function(e) {
+  var summary = e.target.closest('summary.topic-summary');
+  if (!summary) return;
+  var opening = !summary.parentElement.open;
+  if (opening) {
+    document.querySelectorAll('details.topic-block[open]').forEach(function(d) { d.open = false; });
+  }
+});
+</script>
+</body>
+</html>`;
+  } catch (err) {
+    throw Object.assign(
+      new Error(`Markdown conversion failed: ${(err as Error).message}`),
+      { code: 'LIFECYCLE_CONVERT_FAILED', cause: err },
+    );
+  }
+}

@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json.schemastore.org/claude-code-settings.json",
+    "permissions": {
+        "allow": [
+            "Bash(md5)"
+        ],
+        "deny": []
+    },
+    "companyAnnouncements": [
+        "* * * * * * * * * * * * * * * DISCLAIMER * * * * * * * * * * * * * * * \n\nSpecGantry is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. In no event shall the author be liable for any claim, damages, or other liability arising from the use of this software.\nApache-2.0 — Copyright 2026 Mangesh Pise. See [LICENSE] and [NOTICE] for details.\n\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n"
+    ],
+    "hooks": {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/check-update.sh",
+                        "statusMessage": "Checking for SpecGantry updates..."
+                    },
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/engagement-contract.sh",
+                        "statusMessage": "Loading SpecGantry engagement contract..."
+                    }
+                ]
+            }
+        ],
+        "PostCompact": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/engagement-contract.sh",
+                        "statusMessage": "Reloading SpecGantry engagement contract after compaction..."
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sap-bizai-pulse
+  labels:
+    app: sap-bizai-pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sap-bizai-pulse
+  template:
+    metadata:
+      labels:
+        app: sap-bizai-pulse
+    spec:
+      containers:
+        - name: sap-bizai-pulse
+          image: REGISTRY/sap-bizai-pulse:RELEASE
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: sap-bizai-pulse-secret
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
