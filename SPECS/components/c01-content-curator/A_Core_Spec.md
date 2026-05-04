@@ -37,6 +37,8 @@ C01 is the entry point for all curated content. It:
 | `Complete` | F-C01-UPDATE | Update mutable fields of a content entry (`title` only — sensitivity is managed by the approve pipeline, not direct edit) | P1 | Component |
 | `Complete` | F-C01-DELETE | Delete a content entry by ID; no cascade required (no FK to newsletters) | P1 | Component |
 | `Complete` | F-C01-CFGLOAD | Load `_cfg/ai-topics.md` at auto-fetch time; parse the list of SAP Community topic page URLs from the file; fail with a clear error if the file is missing or empty | P0 | - |
+| `Ready` | F-C01-AUTOFETCH-PROGRESS | Stream real-time fetch progress to the UI via SSE during auto-fetch: emit one event per article URL as it is processed (discovered, skipped-duplicate, ingested, or errored); emit a final `fetch_complete` event with the full summary | P1 | Component |
+| `Ready` | F-C01-UX-FLOW | Render the app sidebar with numbered step indicators (Step 1 / 2 / 3) and a visual connector between steps to communicate the sequential workflow; render a dismissible orientation banner on the Curator tab that explains the three-step process on first view | P1 | Component |
 
 ---
 
@@ -197,3 +199,4 @@ If the file is missing or yields zero URLs, `POST /api/v1/curator/fetch` returns
 | ID | Description | Date | Author |
 | :- | :---------- | :--: | :----- |
 | — | Initial specification created | 2026-05-03 | SpecGantry |
+| F-C01-UX-FLOW | Added F-C01-UX-FLOW feature — sidebar step indicators and orientation banner | 2026-05-04 | SpecGantry |

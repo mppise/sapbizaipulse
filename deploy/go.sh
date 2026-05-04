@@ -203,6 +203,8 @@ if kubectl get deployment "$DEPLOYMENT_NAME" -n "$NAMESPACE" >/dev/null 2>&1; th
   kubectl set image "deployment/${DEPLOYMENT_NAME}" \
     "${DEPLOYMENT_NAME}=${IMAGE_FULL}" \
     -n "$NAMESPACE"
+  # Always restart to ensure pods pick up any secret changes
+  kubectl rollout restart "deployment/${DEPLOYMENT_NAME}" -n "$NAMESPACE"
   ok "Image updated to $IMAGE_FULL"
 else
   log "Deployment '$DEPLOYMENT_NAME' does not exist — applying all manifests..."

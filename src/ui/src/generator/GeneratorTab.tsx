@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiFetch } from '../api';
 import { useToast } from '../components/ToastContainer';
 import TopicSelector, { type ClusteredTopic, type TopicInput } from './TopicSelector';
@@ -12,7 +12,9 @@ interface SuggestResult {
   message: string;
 }
 
-export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: boolean) => void }) {
+type Tab = 'curator' | 'generator' | 'newsletters';
+
+export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChange: (busy: boolean) => void; onNavigate: (tab: Tab) => void }) {
   const { showToast } = useToast();
   const [topics, setTopics] = useState<ClusteredTopic[]>([]);
   const [selected, setSelected] = useState<TopicInput[]>([]);
@@ -21,6 +23,7 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
   const [generating, setGenerating] = useState(false);
   const [topicsProgress, setTopicsProgress] = useState<TopicProgress[]>([]);
   const [doneMessage, setDoneMessage] = useState('');
+  const autoNavTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSuggest = useCallback(async () => {
     setSuggesting(true);
@@ -40,7 +43,7 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
         from: result.timeframeFrom,
         message: result.message,
       });
-      if (result.message) showToast(result.message, 'info');
+      if (result.message) showToast(result.message);
     } catch (e: any) {
       showToast(e.message);
     } finally {
@@ -49,11 +52,14 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
     }
   }, [showToast, onBusyChange]);
 
+  useEffect(() => { handleSuggest(); }, [handleSuggest]);
+
   async function handleGenerate() {
     if (selected.length === 0) { showToast('Select at least one topic.', 'warning'); return; }
     setGenerating(true);
     onBusyChange(true);
     setDoneMessage('');
+    if (autoNavTimer.current) { clearTimeout(autoNavTimer.current); autoNavTimer.current = null; }
     const progress: TopicProgress[] = selected.map((t) => ({
       title: t.title,
       status: 'pending',
@@ -98,6 +104,10 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
 
         if (event === 'generation_complete') {
           setDoneMessage(`Draft saved — newsletter ID: ${data.newsletterId}`);
+          showToast('Draft saved — opening Newsletters…', 'success');
+          autoNavTimer.current = setTimeout(() => {
+            onNavigate('newsletters');
+          }, 2000);
         }
         if (event === 'generation_failed') {
           showToast(`Generation failed: ${data.message}`);
@@ -131,19 +141,28 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
     }
   }
 
+  function handleNextCta() {
+    if (autoNavTimer.current) { clearTimeout(autoNavTimer.current); autoNavTimer.current = null; }
+    onNavigate('newsletters');
+  }
+
   const fromDate = suggestMeta?.from ? new Date(suggestMeta.from).toLocaleDateString() : '';
 
   return (
     <div>
+      {suggesting && (
+        <div className="d-flex align-items-center gap-2 mb-3 text-muted small">
+          <span className="spinner-border spinner-border-sm" />
+          Suggesting topics…
+        </div>
+      )}
+
       <div className="d-flex gap-2 mb-3 flex-wrap align-items-center">
-        <button className="btn btn-primary" onClick={handleSuggest} disabled={suggesting || generating}>
-          {suggesting ? <><span className="spinner-border spinner-border-sm me-2" />Suggesting…</> : 'Suggest Topics'}
-        </button>
         {selected.length > 0 && (
           <button className="btn btn-success" onClick={handleGenerate} disabled={generating}>
             {generating
               ? <><span className="spinner-border spinner-border-sm me-2" />Generating…</>
-              : `Generate (${selected.length} topic${selected.length !== 1 ? 's' : ''})`}
+              : <><i className="bi bi-stars me-2" />Generate Newsletter ({selected.length} topic{selected.length !== 1 ? 's' : ''})</>}
           </button>
         )}
         {suggestMeta && !suggesting && (
@@ -164,8 +183,13 @@ export default function GeneratorTab({ onBusyChange }: { onBusyChange: (busy: bo
       {topicsProgress.length > 0 && <GenerationProgress topics={topicsProgress} />}
 
       {doneMessage && (
-        <div className="alert alert-success mt-3">
-          {doneMessage} — check the <strong>Newsletters</strong> tab.
+        <div className="mt-3">
+          <div className="alert alert-success">
+            {doneMessage}
+          </div>
+          <button className="btn btn-primary" onClick={handleNextCta}>
+            Next: Review Newsletters <i className="bi bi-arrow-right ms-1" />
+          </button>
         </div>
       )}
     </div>

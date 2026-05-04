@@ -104,7 +104,7 @@ export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
                     onClick={() => handleApprove(e.id)}
                     disabled={approving === e.id}
                   >
-                    {approving === e.id ? <span className="spinner-border spinner-border-sm" /> : 'Approve'}
+                    {approving === e.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-check-circle me-1" />Approve</>}
                   </button>
                 )}
                 <button
@@ -112,7 +112,7 @@ export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
                   onClick={() => handleDelete(e.id, e.title)}
                   disabled={deleting === e.id}
                 >
-                  {deleting === e.id ? <span className="spinner-border spinner-border-sm" /> : 'Delete'}
+                  {deleting === e.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-trash me-1" />Delete</>}
                 </button>
               </td>
             </tr>

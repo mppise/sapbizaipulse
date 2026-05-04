@@ -10,8 +10,6 @@
   --sap-border:   #d9dde7;
   --sap-text:     #1d2d3e;
   --sap-muted:    #556070;
-  --sap-sidebar:  #0a0f2e;
-  --sap-sidebar-w: 220px;
   --radius:       8px;
 }
 
@@ -115,92 +113,425 @@ body {
   border-color: rgba(255,255,255,.3);
 }
 
-/* ── Body Layout ── */
-.app-body {
+/* ── How It Works Banner ── */
+.workflow-banner {
+  background: #e8f2ff;
+  border-bottom: 1px solid #b8d4f8;
+  padding: .55rem 2rem;
   display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .78rem;
+  color: var(--sap-text);
+  flex-shrink: 0;
+}
+
+.workflow-banner-icon {
+  color: var(--sap-blue);
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+.workflow-banner-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+
+.workflow-banner-sep {
+  color: #7a9fc8;
+  font-weight: 700;
+  padding: 0 .15rem;
+}
+
+/* ── Workflow Stepper Bar ── */
+.workflow-bar {
+  background: #fff;
+  border-bottom: 2px solid var(--sap-border);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  flex-shrink: 0;
+}
+
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 700px;
+  width: 100%;
+  justify-content: center;
+}
+
+.workflow-step-group {
+  display: flex;
+  align-items: center;
   flex: 1;
 }
 
-/* ── Sidebar ── */
-.app-sidebar {
-  width: var(--sap-sidebar-w);
-  background: var(--sap-sidebar);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 1.25rem 0;
-}
-
-.sidebar-section-label {
-  font-size: .62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: #3a4a6a;
-  padding: 0 1.1rem .5rem;
-}
-
-.sidebar-nav {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.sidebar-nav-item button {
-  width: 100%;
-  background: transparent;
-  border: none;
-  padding: .6rem 1.1rem;
+.workflow-step {
   display: flex;
   align-items: center;
-  gap: .65rem;
-  color: #7a8fa8;
-  font-size: .82rem;
-  font-weight: 500;
+  gap: .75rem;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: background .15s, color .15s, border-color .15s;
+  padding: .5rem .75rem;
+  border-radius: var(--radius);
+  transition: background .15s;
+  flex: 1;
   text-align: left;
 }
-
-.sidebar-nav-item button:hover {
-  background: rgba(255,255,255,.05);
-  color: #c8d8ea;
+.workflow-step:hover:not(:disabled) {
+  background: var(--sap-bg);
 }
-
-.sidebar-nav-item button.active {
-  background: rgba(0,112,243,.12);
-  color: #fff;
-  border-left-color: var(--sap-blue);
-  font-weight: 600;
-}
-
-.sidebar-nav-item button.active .nav-icon {
-  color: var(--sap-blue);
-}
-
-.sidebar-nav-item button:disabled {
-  opacity: .35;
+.workflow-step:disabled {
+  opacity: .45;
   cursor: not-allowed;
 }
 
-.nav-icon {
+/* Badge */
+.wf-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.wf-badge--active {
+  background: var(--sap-blue);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(0,112,243,.15);
+}
+
+.wf-badge--done {
+  background: #e6f4ed;
+  color: #1a7f4b;
+  border: 2px solid #1a7f4b;
+}
+
+.wf-badge--future {
+  background: var(--sap-bg);
+  color: #a0aab8;
+  border: 2px solid var(--sap-border);
+}
+
+/* Labels */
+.wf-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.wf-label-step {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--sap-muted);
+}
+
+.wf-label-name {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--sap-text);
+}
+
+.workflow-step--active .wf-label-step {
+  color: var(--sap-blue);
+}
+.workflow-step--active .wf-label-name {
+  color: var(--sap-blue);
+}
+.workflow-step--done .wf-label-name {
+  color: #1a7f4b;
+}
+.workflow-step--future .wf-label-name {
+  color: #a0aab8;
+}
+
+/* Arrow connector */
+.workflow-arrow {
   font-size: 1rem;
-  width: 1.1rem;
-  text-align: center;
+  color: var(--sap-border);
+  padding: 0 .25rem;
   flex-shrink: 0;
 }
 
-.sidebar-footer {
-  margin-top: auto;
-  padding: 1rem 1.1rem 0;
-  border-top: 1px solid rgba(255,255,255,.06);
+/* ── Main Content ── */
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.sidebar-footer-text {
-  font-size: .62rem;
-  color: #2e3f5a;
-  line-height: 1.5;
+.app-content-header {
+  background: var(--sap-surface);
+  border-bottom: 1px solid var(--sap-border);
+  padding: 1.1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.content-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.content-header-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sap-text);
+  margin: 0;
+}
+
+.content-header-desc {
+  font-size: .75rem;
+  color: var(--sap-muted);
+  margin: 0;
+}
+
+.app-content-body {
+  flex: 1;
+  padding: 1.75rem 2rem;
+  overflow-y: auto;
+}
+
+/* ── API Key Gate ── */
+.gate-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--sap-navy) 0%, #0a1a4a 60%, #0d2060 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.gate-card {
+  background: var(--sap-surface);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.4);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.gate-card-header {
+  background: var(--sap-navy);
+  padding: 2rem 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .75rem;
+}
+
+.gate-logo {
+  width: 44px;
+  height: 44px;
+  background: var(--sap-gold);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--sap-navy);
+}
+
+.gate-card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.gate-card-subtitle {
+  font-size: .78rem;
+  color: #7a8fa8;
+  margin: 0;
+}
+
+.gate-card-body {
+  padding: 1.75rem 2rem 2rem;
+}
+
+.gate-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--sap-muted);
+  margin-bottom: .4rem;
+  display: block;
+}
+
+.gate-input {
+  width: 100%;
+  border: 1.5px solid var(--sap-border);
+  border-radius: var(--radius);
+  padding: .6rem .9rem;
+  font-size: .9rem;
+  color: var(--sap-text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  background: #f8f9fb;
+}
+.gate-input:focus {
+  border-color: var(--sap-blue);
+  box-shadow: 0 0 0 3px rgba(0,112,243,.12);
+  background: #fff;
+}
+
+.gate-btn {
+  width: 100%;
+  background: var(--sap-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: .65rem 1rem;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+}
+.gate-btn:hover { background: var(--sap-blue-dk); }
+
+.gate-note {
+  font-size: .7rem;
+  color: #aab;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* ── Busy indicator strip ── */
+.busy-strip {
+  height: 3px;
+  background: linear-gradient(90deg, var(--sap-blue), var(--sap-gold), var(--sap-blue));
+  background-size: 200% 100%;
+  animation: busy-slide 1.4s linear infinite;
+}
+@keyframes busy-slide {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
+  background: var(--sap-bg);
+  color: var(--sap-text);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ── App Shell ── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Top Bar ── */
+.app-topbar {
+  background: var(--sap-navy);
+  color: #fff;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  flex-shrink: 0;
+}
+
+.app-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  text-decoration: none;
+}
+
+.app-topbar-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--sap-gold);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  color: var(--sap-navy);
+  flex-shrink: 0;
+}
+
+.app-topbar-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+
+.app-topbar-subtitle {
+  font-size: .72rem;
+  color: #7a8fa8;
+  white-space: nowrap;
+  margin-left: .25rem;
+}
+
+.app-topbar-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,.12);
+}
+
+.app-topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.topbar-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.18);
+  color: #a8bdd0;
+  border-radius: 6px;
+  padding: .3rem .75rem;
+  font-size: .75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.topbar-btn:hover {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border-color: rgba(255,255,255,.3);
 }
 
 /* ── Main Content ── */

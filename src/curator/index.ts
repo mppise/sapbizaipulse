@@ -29,12 +29,24 @@ function errorResponse(res: import('express').Response, status: number, code: st
 // [F-C01-AUTOFETCH]
 router.post('/fetch', async (req, res) => {
   const requestId = reqId();
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setTimeout(0);
+  const keepAlive = setInterval(() => res.write(': keep-alive\n\n'), 15000);
+
+  const emit = (event: string, data: Record<string, unknown>) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
   try {
-    const result = await autoFetch();
-    res.json({ data: result, meta: { requestId } });
+    await autoFetch(emit);
   } catch (err: any) {
-    if (err.code === 'CURATOR_CONFIG_MISSING') return errorResponse(res, 500, err.code, err.message, requestId);
-    errorResponse(res, 500, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);
+    const code = err.code === 'CURATOR_CONFIG_MISSING' ? err.code : 'CURATOR_FETCH_FAILED';
+    emit('fetch_error', { code, message: (err as Error).message });
+  } finally {
+    clearInterval(keepAlive);
+    res.end();
   }
 });
 

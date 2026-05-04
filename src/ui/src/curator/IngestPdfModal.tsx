@@ -50,7 +50,7 @@ export default function IngestPdfModal({ onClose, onSaved }: Props) {
     try {
       await apiFetch('/curator/ingest/pdf/confirm', {
         method: 'POST',
-        body: JSON.stringify({ title, bodyText: preview.fullBodyText, sourceRef: fileRef.current?.files?.[0]?.name ?? title }),
+        body: JSON.stringify({ title, fullBodyText: preview.fullBodyText, sourceRef: fileRef.current?.files?.[0]?.name ?? title }),
       });
       showToast('PDF entry saved.', 'success');
       onSaved();
@@ -88,7 +88,7 @@ export default function IngestPdfModal({ onClose, onSaved }: Props) {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Extracted preview</label>
-                  <textarea className="form-control font-monospace small" rows={8} readOnly value={preview.bodyTextPreview} />
+                  <textarea className="form-control font-monospace small" rows={8} readOnly value={preview.fullBodyText} />
                 </div>
               </div>
             )}

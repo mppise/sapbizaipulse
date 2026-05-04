@@ -103,12 +103,6 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
 
   return (
     <div>
-      <div className="d-flex mb-3">
-        <button className="btn btn-outline-light border ms-auto" onClick={load} disabled={loading}>
-          ↺ Refresh
-        </button>
-      </div>
-
       {loading ? (
         <div className="text-center py-5"><span className="spinner-border" /></div>
       ) : newsletters.length === 0 ? (
@@ -151,14 +145,14 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
                           className="btn btn-sm btn-outline-secondary me-1"
                           onClick={() => setPreview(n)}
                         >
-                          Edit
+                          <i className="bi bi-pencil me-1" />Edit
                         </button>
                         <button
                           className="btn btn-sm btn-outline-primary me-1"
                           onClick={() => handlePublish(n)}
                           disabled={publishing === n.id}
                         >
-                          {publishing === n.id ? <span className="spinner-border spinner-border-sm" /> : 'Publish'}
+                          {publishing === n.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-send me-1" />Publish</>}
                         </button>
                       </>
                     )}
@@ -170,14 +164,14 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
                           rel="noreferrer"
                           className="btn btn-sm btn-outline-success me-1"
                         >
-                          View
+                          <i className="bi bi-box-arrow-up-right me-1" />View
                         </a>
                         <button
                           className="btn btn-sm btn-outline-secondary me-1"
                           onClick={() => handleDraftMessage(n)}
                           title="Copy email draft to clipboard"
                         >
-                          <i className="bi bi-envelope" /> Draft Message
+                          <i className="bi bi-envelope me-1" />Draft Message
                         </button>
                       </>
                     )}
@@ -186,7 +180,7 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
                       onClick={() => handleDelete(n)}
                       disabled={deleting === n.id}
                     >
-                      {deleting === n.id ? <span className="spinner-border spinner-border-sm" /> : 'Delete'}
+                      {deleting === n.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-trash me-1" />Delete</>}
                     </button>
                   </td>
                 </tr>

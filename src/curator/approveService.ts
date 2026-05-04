@@ -10,8 +10,25 @@ export async function approveEntry(id: string): Promise<{ id: string; sensitivit
     throw Object.assign(new Error('Entry is already Newsletter-ready'), { code: 'CURATOR_ALREADY_APPROVED' });
   }
 
-  // Re-fetch the actual page content via Playwright
-  const { title: fetchedTitle, bodyText: rawText } = await extractPageContent(entry.sourceRef);
+  let rawText: string;
+  let betterTitle: string | null = null;
+
+  if (entry.sourceType === 'pdf') {
+    // PDF body text was already extracted at upload time — use it directly
+    rawText = entry.bodyText;
+  } else {
+    // Re-fetch the actual page content via Playwright for url/auto-fetch entries
+    const { title: fetchedTitle, bodyText: fetched } = await extractPageContent(entry.sourceRef);
+    rawText = fetched;
+    betterTitle = fetchedTitle && fetchedTitle.length > 5 && fetchedTitle !== entry.sourceRef
+      ? fetchedTitle
+      : null;
+  }
+
+  // Update title if improved
+  if (betterTitle && betterTitle !== entry.title) {
+    await updateContentEntry(id, { title: betterTitle });
+  }
 
   // Synthesize raw text into a clean structured summary via LLM
   const result = await generateCompletion('synthesize-content', {
@@ -24,18 +41,8 @@ export async function approveEntry(id: string): Promise<{ id: string; sensitivit
     throw Object.assign(new Error('Page did not contain sufficient content to synthesize'), { code: 'CURATOR_INSUFFICIENT_CONTENT' });
   }
 
-  // Update title if the fetched page gave us a better one
-  const betterTitle = fetchedTitle && fetchedTitle.length > 5 && fetchedTitle !== entry.sourceRef
-    ? fetchedTitle
-    : null;
-
   // Persist synthesized body text
   await updateContentEntryBodyText(id, synthesized);
-
-  // Update title if improved
-  if (betterTitle && betterTitle !== entry.title) {
-    await updateContentEntry(id, { title: betterTitle });
-  }
 
   // Generate embedding from the synthesized summary
   const embedding = await generateEmbedding(synthesized);

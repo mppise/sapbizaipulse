@@ -31,8 +31,8 @@ license: Apache-2.0 (see LICENSE in project root)
 
 | **Component** | **Status** | **Design started** | **Design ready** | **Dev started** | **Dev complete** | **Blocked by** | **Notes** |
 | :------------ | :--------: | :----------------: | :--------------: | :-------------: | :--------------: | :------------- | :-------- |
-| C01 Content Curator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
-| C02 Newsletter Generator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
+| C01 Content Curator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; F-C01-UX-FLOW added 2026-05-04 |
+| C02 Newsletter Generator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; F-C02-UX-AUTONAV + F-C02-UX-NEXTCTA added 2026-05-04 |
 | C03 Newsletter Lifecycle | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
 | C04 AI Service | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
 | C05 Data Store | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |

@@ -7,9 +7,13 @@ const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 const log = (level: 'info' | 'warn' | 'error', message: string, extra?: Record<string, unknown>) =>
   console.log(JSON.stringify({ level, component: 'fetchService', message, ...extra }));
 
+export type FetchEmitter = (event: string, data: Record<string, unknown>) => void;
+
 // [F-C01-AUTOFETCH] Crawl topic landing pages, discover articles, ingest those within cutoff window.
 // Body text is fetched and synthesized at approve time — only title + URL stored here.
-export async function autoFetch(): Promise<{ added: number; skipped: number; errors: { sourceRef: string; message: string }[] }> {
+export async function autoFetch(
+  emit: FetchEmitter = () => {},
+): Promise<{ added: number; skipped: number; errors: { sourceRef: string; message: string }[] }> {
   const urls = loadTopicUrls();
   const cutoff = await getCutoff();
   log('info', 'Starting auto-fetch', { topicPages: urls.length, cutoff: cutoff.toISOString() });
@@ -19,14 +23,17 @@ export async function autoFetch(): Promise<{ added: number; skipped: number; err
 
   for (const landingUrl of urls) {
     log('info', 'Processing landing page', { url: landingUrl });
+    emit('landing_start', { url: landingUrl });
     let articleLinks: { title: string; url: string }[];
     try {
       articleLinks = await scrapeArticleLinks(landingUrl);
       log('info', 'Found article links on landing page', { url: landingUrl, count: articleLinks.length });
+      emit('landing_done', { url: landingUrl, count: articleLinks.length });
     } catch (err) {
       const msg = `Failed to scrape landing page: ${(err as Error).message}`;
       log('error', msg, { url: landingUrl });
       errors.push({ sourceRef: landingUrl, message: msg });
+      emit('article_error', { url: landingUrl, message: msg });
       continue;
     }
 
@@ -36,9 +43,11 @@ export async function autoFetch(): Promise<{ added: number; skipped: number; err
         if (exists) {
           log('info', 'Skipping duplicate article', { url: article.url });
           skipped++;
+          emit('article_skipped', { url: article.url, title: article.title, reason: 'duplicate' });
           continue;
         }
 
+        emit('article_processing', { url: article.url, title: article.title });
         const publishedDate = await scrapeArticleDate(article.url);
 
         if (publishedDate && publishedDate < cutoff) {
@@ -47,6 +56,8 @@ export async function autoFetch(): Promise<{ added: number; skipped: number; err
             publishedDate: publishedDate.toISOString(),
             cutoff: cutoff.toISOString(),
           });
+          skipped++;
+          emit('article_skipped', { url: article.url, title: article.title, reason: 'too_old' });
           break;
         }
 
@@ -58,14 +69,17 @@ export async function autoFetch(): Promise<{ added: number; skipped: number; err
         });
         log('info', 'Article ingested', { url: article.url, title: article.title, publishedDate: publishedDate?.toISOString() ?? 'unknown' });
         added++;
+        emit('article_ingested', { url: article.url, title: article.title });
       } catch (err) {
         log('error', 'Error processing article', { url: article.url, detail: (err as Error).message });
         errors.push({ sourceRef: article.url, message: (err as Error).message });
+        emit('article_error', { url: article.url, title: article.title, message: (err as Error).message });
       }
     }
   }
 
   log('info', 'Auto-fetch complete', { added, skipped, errors: errors.length });
+  emit('fetch_complete', { added, skipped, errors: errors.length });
   return { added, skipped, errors };
 }
 

@@ -34,6 +34,13 @@ export async function closeBrowser(): Promise<void> {
   }
 }
 
+const DOMAIN_SELECTORS: Record<string, string[]> = {
+  'community.sap.com': ['.lia-message-body-content', '.lia-quilt-column-main-content'],
+  'blogs.sap.com':     ['.blog-post-content', '.entry-content', 'article'],
+  'news.sap.com':      ['.entry-content'],
+};
+const GENERIC_SELECTORS = ['article', 'main', '[role="main"]', '.content', 'body'];
+
 // Extract title + body text from a page URL
 export async function extractPageContent(url: string): Promise<{ title: string; bodyText: string }> {
   log('info', 'Extracting page content', { url });
@@ -41,30 +48,25 @@ export async function extractPageContent(url: string): Promise<{ title: string; 
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-    // Wait for SAP Community article body to render — try known selectors with a timeout
+    const hostname = new URL(url).hostname;
+    const selectors = [...(DOMAIN_SELECTORS[hostname] ?? []), ...GENERIC_SELECTORS];
+
+    // Wait for the first known selector to appear
     try {
-      await page.waitForSelector(
-        '.lia-message-body-content, .lia-quilt-column-main-content, article, main',
-        { timeout: 10_000 }
-      );
-    } catch { /* selector not found — proceed with whatever is rendered */ }
+      await page.waitForSelector(selectors.slice(0, -1).join(', '), { timeout: 10_000 });
+    } catch { /* proceed with whatever is rendered */ }
+
+    // Extra settle time for JS-heavy pages
+    await page.waitForTimeout(2000);
 
     const title = ((await page.title()).trim() || new URL(url).hostname)
       .replace(/\s*[-|]\s*SAP Community\s*$/i, '')
+      .replace(/\s*[-|]\s*SAP News Center\s*$/i, '')
+      .replace(/\s*[-|]\s*SAP News\s*$/i, '')
       .trim();
 
-    const bodyText = await page.evaluate(() => {
-      // SAP Community-specific selectors first, then generic fallbacks
-      const selectors = [
-        '.lia-message-body-content',
-        '.lia-quilt-column-main-content',
-        'article',
-        'main',
-        '[role="main"]',
-        '.content',
-        'body',
-      ];
-      for (const sel of selectors) {
+    const bodyText = await page.evaluate((sels: string[]) => {
+      for (const sel of sels) {
         // @ts-ignore — runs inside browser context; document is available
         const el = document.querySelector(sel);
         // @ts-ignore
@@ -72,7 +74,7 @@ export async function extractPageContent(url: string): Promise<{ title: string; 
       }
       // @ts-ignore
       return (document.body as any).innerText as string;
-    }) as string;
+    }, selectors) as string;
 
     const cleaned = bodyText.trim().replace(/\n{3,}/g, '\n\n');
 

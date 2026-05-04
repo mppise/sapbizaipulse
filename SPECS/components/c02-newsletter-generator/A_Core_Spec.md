@@ -36,6 +36,8 @@ C02 orchestrates everything between "author clicks Generate" and "draft saved". 
 | `Complete` | F-C02-GUARDRAIL | After generating all three sections for a topic, run `C04.checkGuardrail()` on the concatenated section content; include the guardrail result in the SSE stream and in the assembled Markdown as a comment block | P0 | - |
 | `Complete` | F-C02-FILENAME | Generate a unique newsletter filename in the format `newsletter_<YYYY-MM-DD>_<4-char-hex>` (e.g. `newsletter_2026-05-03_a3f1`) using the current date and a random 4-character hex suffix to avoid collisions | P0 | - |
 | `Complete` | F-C02-SAVEDRAFT | On successful generation of all topics, call `C03.saveDraft({ filename, topicList, markdownContent })` to persist the draft | P0 | - |
+| `Ready` | F-C02-UX-AUTONAV | On receipt of the `generation_complete` SSE event, automatically navigate the user to the Newsletters tab after a 2-second delay, with a toast notification: "Draft saved — opening Newsletters…" | P1 | Component |
+| `Ready` | F-C02-UX-NEXTCTA | After generation completes (and before auto-navigation fires), display a contextual "Next: Review Newsletters →" button in the Generator tab that the user can click immediately to jump to the Newsletters tab without waiting | P1 | Component |
 
 ---
 
@@ -152,3 +154,4 @@ For `clustered` topics, no additional curated-body lookup is needed — the pers
 | ID | Description | Date | Author |
 | :- | :---------- | :--: | :----- |
 | — | Initial specification created | 2026-05-03 | SpecGantry |
+| F-C02-UX-AUTONAV/NEXTCTA | Added F-C02-UX-AUTONAV and F-C02-UX-NEXTCTA features — auto-navigation and Next CTA after generation complete | 2026-05-04 | SpecGantry |

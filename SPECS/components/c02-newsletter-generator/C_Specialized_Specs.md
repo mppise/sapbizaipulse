@@ -184,9 +184,40 @@ function formatChunks(chunks: VectorSearchResult[]): string {
 
 ---
 
+## 6. UX Detail — F-C02-UX-AUTONAV and F-C02-UX-NEXTCTA
+
+### 6.1 Auto-Navigation on Generation Complete (F-C02-UX-AUTONAV)
+
+**Trigger:** `generation_complete` SSE event received in `GeneratorTab.tsx`.
+
+**Behaviour:**
+1. Show a toast notification: `"Draft saved — opening Newsletters…"` (variant: `success`).
+2. After a **2-second delay**, call the `onNavigate('newsletters')` prop to switch the active tab to the Newsletters tab.
+3. The 2-second delay gives the user time to read the toast before the view changes.
+4. If the user manually clicks "Next: Review Newsletters →" (F-C02-UX-NEXTCTA) before the 2-second timer fires, cancel the timer to avoid a redundant navigation.
+
+**Implementation note:** `GeneratorTab` must accept an `onNavigate: (tab: Tab) => void` prop from `App.tsx`. `App.tsx` passes `setTab` as this prop.
+
+### 6.2 Next CTA Button (F-C02-UX-NEXTCTA)
+
+**When shown:** Rendered immediately after `generation_complete` is received, replacing or appearing below the existing `doneMessage` alert.
+
+**Button label:** `Next: Review Newsletters →`
+
+**Behaviour:**
+- On click: cancel the pending auto-navigation timer (if still running), then immediately call `onNavigate('newsletters')`.
+- Button uses Bootstrap `btn btn-primary` styling with a right-arrow icon (`bi-arrow-right`).
+- The existing `doneMessage` alert (showing the newsletter ID) remains visible alongside the button.
+
+### 6.3 Error Case
+- Auto-navigation and the Next CTA must **not** fire on `generation_failed` — only on `generation_complete`.
+
+---
+
 ## Change History
 
 | ID | Description | Date | Author |
 | :- | :---------- | :--: | :----- |
 | — | Initial specification created | 2026-05-03 | SpecGantry |
 | CHG-001 | Redesigned F-C02-SUGGEST: replaced Playwright scraping with two-pass LLM clustering over Newsletter-ready HANA entries; added persona-specific vector search per section | 2026-05-04 | SpecGantry |
+| F-C02-UX-AUTONAV/NEXTCTA | Added §6 UX Detail for auto-navigation and Next CTA | 2026-05-04 | SpecGantry |
