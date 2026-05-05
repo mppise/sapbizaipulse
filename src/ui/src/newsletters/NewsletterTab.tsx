@@ -124,64 +124,61 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
         <div className="item-grid">
           {newsletters.map((n) => {
             const isPublished = n.status === 'published';
+            const fmtDate = (iso: string) =>
+              new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             return (
               <div key={n.id} className={`item-card ${isPublished ? 'item-card--ready' : 'item-card--pending'}`}>
                 <div className="item-card-body">
-                  <div className="item-card-chips">
-                    <span className={`item-chip ${isPublished ? 'item-chip--green' : 'item-chip--muted'}`}>
-                      {isPublished ? 'Published' : 'Draft'}
-                    </span>
+                  <div className="item-card-title-row">
+                    <div className="item-card-title font-monospace" style={{ fontSize: '.92rem' }}>{n.filename}</div>
+                    <div className="item-card-actions">
+                      {n.status === 'draft' && (
+                        <>
+                          <button className="btn btn-sm btn-outline-secondary" title="Edit" onClick={() => setPreview(n)}>
+                            <i className="bi bi-pencil" />
+                          </button>
+                          <button className="btn btn-sm btn-outline-primary" title="Publish" onClick={() => handlePublish(n)} disabled={publishing === n.id}>
+                            {publishing === n.id
+                              ? <span className="spinner-border spinner-border-sm" />
+                              : <i className="bi bi-send" />}
+                          </button>
+                        </>
+                      )}
+                      {n.status === 'published' && (
+                        <>
+                          <a href={`/published/${n.filename}.html`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-success" title="View">
+                            <i className="bi bi-box-arrow-up-right" />
+                          </a>
+                          <button className="btn btn-sm btn-outline-secondary" title="Copy email draft" onClick={() => handleDraftMessage(n)}>
+                            <i className="bi bi-envelope" />
+                          </button>
+                          <button className="btn btn-sm btn-outline-warning" title="Unpublish" onClick={() => handleUnpublish(n)} disabled={unpublishing === n.id}>
+                            {unpublishing === n.id
+                              ? <span className="spinner-border spinner-border-sm" />
+                              : <i className="bi bi-arrow-counterclockwise" />}
+                          </button>
+                        </>
+                      )}
+                      <button className="btn btn-sm btn-outline-danger" title="Delete" onClick={() => handleDelete(n)} disabled={deleting === n.id}>
+                        {deleting === n.id
+                          ? <span className="spinner-border spinner-border-sm" />
+                          : <i className="bi bi-trash" />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="item-card-title font-monospace" style={{ fontSize: '.92rem' }}>{n.filename}</div>
                   {n.topicList && n.topicList.length > 0 && (
                     <div className="item-card-topics">{n.topicList.join(' · ')}</div>
                   )}
                   <div className="item-card-dates">
                     <span className="item-date-meta">
-                      <i className="bi bi-plus-circle me-1" />
-                      {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      <span className="item-date-label">Created:</span>
+                      {fmtDate(n.createdAt)}
                     </span>
-                    {n.publishedAt && (
-                      <span className="item-date-meta item-date-meta--approved">
-                        <i className="bi bi-send me-1" />
-                        {new Date(n.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    )}
+                    <span className="item-date-meta">
+                      <span className="item-date-label">Published:</span>
+                      {n.publishedAt ? fmtDate(n.publishedAt) : '—'}
+                    </span>
                   </div>
-                </div>
-                <div className="item-card-actions">
-                  {n.status === 'draft' && (
-                    <>
-                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setPreview(n)}>
-                        <i className="bi bi-pencil me-1" />Edit
-                      </button>
-                      <button className="btn btn-sm btn-outline-primary" onClick={() => handlePublish(n)} disabled={publishing === n.id}>
-                        {publishing === n.id
-                          ? <span className="spinner-border spinner-border-sm" />
-                          : <><i className="bi bi-send me-1" />Publish</>}
-                      </button>
-                    </>
-                  )}
-                  {n.status === 'published' && (
-                    <>
-                      <a href={`/published/${n.filename}.html`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-success">
-                        <i className="bi bi-box-arrow-up-right me-1" />View
-                      </a>
-                      <button className="btn btn-sm btn-outline-secondary" onClick={() => handleDraftMessage(n)} title="Copy email draft to clipboard">
-                        <i className="bi bi-envelope me-1" />Draft
-                      </button>
-                      <button className="btn btn-sm btn-outline-warning" onClick={() => handleUnpublish(n)} disabled={unpublishing === n.id}>
-                        {unpublishing === n.id
-                          ? <span className="spinner-border spinner-border-sm" />
-                          : <><i className="bi bi-arrow-counterclockwise me-1" />Unpublish</>}
-                      </button>
-                    </>
-                  )}
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(n)} disabled={deleting === n.id}>
-                    {deleting === n.id
-                      ? <span className="spinner-border spinner-border-sm" />
-                      : <i className="bi bi-trash" />}
-                  </button>
                 </div>
               </div>
             );

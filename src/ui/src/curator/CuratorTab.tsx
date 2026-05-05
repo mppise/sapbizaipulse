@@ -74,7 +74,7 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
             sourceType: 'auto-fetch',
             sourceRef: data.url as string,
             ingestionDate: new Date().toISOString(),
-            publishedDate: null,
+            publishedDate: (data.publishedDate as string) ?? null,
             approvedAt: null,
             sensitivity: 'Internal',
           } as ContentEntry, ...prev]);

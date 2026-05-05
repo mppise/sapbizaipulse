@@ -463,18 +463,15 @@ body {
 .item-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: .6rem;
+  gap: 1rem;
 }
 
 .item-card {
   background: var(--sap-surface);
   border: 1px solid var(--sap-border);
-  border-left: 4px solid var(--sap-border);
+  border-left: 10px solid var(--sap-border);
   border-radius: var(--radius);
-  display: flex;
-  align-items: stretch;
-  gap: .75rem;
-  padding: .75rem 1rem;
+  padding: 1rem 1.25rem;
   transition: box-shadow .15s, border-color .15s;
 }
 
@@ -482,7 +479,7 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
 }
 
-.item-card--ready  { border-left-color: #1a7f4b; }
+.item-card--ready  { border-color: #1a7f4b; }
 .item-card--pending { border-left-color: var(--sap-border); }
 
 .item-card-body {
@@ -493,12 +490,19 @@ body {
   gap: .3rem;
 }
 
+.item-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+}
+
 .item-card-title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--sap-text);
   line-height: 1.35;
   flex: 1;
+  min-width: 0;
 }
 
 .item-card-title a {
@@ -548,47 +552,54 @@ body {
   align-items: center;
   font-size: .75rem;
   color: var(--sap-muted);
-  gap: .2rem;
+  gap: .25rem;
 }
 
-.item-date-meta--approved {
-  color: #1a7f4b;
+.item-date-label {
+  font-weight: 600;
+  color: var(--sap-text);
+  opacity: .6;
 }
 
 .item-card-dates {
   display: flex;
-  gap: .75rem;
-  justify-content: flex-end;
+  gap: 1rem;
   align-items: center;
   padding-top: .35rem;
   border-top: 1px solid var(--sap-border);
-  margin-top: auto;
+  margin-top: .25rem;
 }
 
 .item-card-actions {
   display: flex;
   flex-shrink: 0;
-  gap: .35rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: .3rem;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
-.item-card-actions .btn {
-  padding-top: .6rem;
-  padding-bottom: .6rem;
+/* ── Global button sizing ── */
+.btn-sm {
+  padding: .55rem .8rem !important;
+  font-size: 1rem !important;
+  line-height: 1.4 !important;
+}
+
+.btn:not(.btn-sm) {
+  padding: .6rem 1rem;
+  font-size: 1.05rem;
 }
 
 @media (min-width: 640px) {
   .item-grid {
-    gap: .75rem;
+    gap: 1.1rem;
   }
 }
 
 @media (min-width: 1024px) {
   .item-grid {
     grid-template-columns: 1fr 1fr;
-    gap: .85rem;
+    gap: 1.25rem;
   }
 }
 

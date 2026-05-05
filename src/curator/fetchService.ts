@@ -101,7 +101,7 @@ export async function autoFetch(
         });
         log('info', 'Article ingested', { url: article.url, title: article.title, publishedDate: publishedDate?.toISOString() ?? 'unknown' });
         added++;
-        emit('article_ingested', { url: article.url, title: article.title });
+        emit('article_ingested', { url: article.url, title: article.title, publishedDate: publishedDate.toISOString() });
       } catch (err) {
         log('error', 'Error processing article', { url: article.url, detail: (err as Error).message });
         errors.push({ sourceRef: article.url, message: (err as Error).message });
