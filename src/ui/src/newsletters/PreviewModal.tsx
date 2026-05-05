@@ -47,7 +47,7 @@ export default function PreviewModal({ newsletterId, filename, onClose, onSaved 
 
   return (
     <div className="modal d-block" style={{ background: 'rgba(0,0,0,.4)' }}>
-      <div className="modal-dialog modal-xl modal-dialog-scrollable">
+      <div className="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">

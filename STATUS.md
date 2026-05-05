@@ -8,8 +8,8 @@ license: Apache-2.0 (see LICENSE in project root)
 # Project Status
 
 > **Overall health:** 🟢 On Track
-> **Last updated:** 2026-05-04
-> **Active phase:** Development: Complete
+> **Last updated:** 2026-05-05
+> **Active phase:** Deployment Readiness
 
 ---
 
@@ -21,7 +21,7 @@ license: Apache-2.0 (see LICENSE in project root)
 | Planning | ✅ | 2026-05-03 | 2026-05-03 | DevAgent | Complete — B_Architecture.md finalized; C/D/E reviewed; D-DATA-FILESYS resolved (SAP Object Store) |
 | Detailed Design | ✅ | 2026-05-03 | 2026-05-03 | | All 5 component specs complete and agreed |
 | Development | ✅ | 2026-05-03 | 2026-05-03 | | All 5 components built per spec, error-free |
-| Deployment Readiness | ✅ | 2026-05-04 | 2026-05-04 | | Audit PASS — rel_2026.05.04.1552 |
+| Deployment Readiness | ✅ | 2026-05-04 | 2026-05-04 | | Audit PASS — rel_2026.05.04.1800 |
 
 > **Status key:** ⬜ Not started · 🔄 In progress · ✅ Complete · 🔴 Blocked
 
@@ -64,7 +64,9 @@ license: Apache-2.0 (see LICENSE in project root)
 
 | **Version** | **Status** | **Deployment ready on** | **Deployed on** | **Notes** |
 | :---------- | :--------: | :---------------------: | :-------------: | :-------- |
-| v0.2.0 — rel_2026.05.04.1552 | 🔄 Ready for deployment | 2026-05-04 | | See deploy/rel_2026.05.04.1552/release_audit.md |
+| v0.2.0 — rel_2026.05.04.1552 | ✅ Deployed | 2026-05-04 | 2026-05-04 | See deploy/rel_2026.05.04.1552/release_audit.md |
+| v0.3.0 — rel_2026.05.04.1800 | ✅ Deployed | 2026-05-04 | 2026-05-04 | See deploy/rel_2026.05.04.1800/release_audit.md |
+| v0.4.0 — rel_2026.05.05.0900 | 🔄 Ready for deployment | 2026-05-05 | | See deploy/rel_2026.05.05.0900/release_audit.md |
 
 ---
 

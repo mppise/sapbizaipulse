@@ -3,7 +3,6 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { autoFetch } from './fetchService';
 import { extractPdfText } from './pdfService';
-import { fetchUrl } from './urlService';
 import { approveEntry } from './approveService';
 import {
   contentEntryExistsBySourceRef,
@@ -84,42 +83,6 @@ router.post('/ingest/pdf/confirm', async (req, res) => {
     if (await contentEntryExistsBySourceRef(sourceRef)) return errorResponse(res, 409, 'CURATOR_DUPLICATE', `An entry with this source already exists: ${sourceRef}`, requestId);
     const truncated = fullBodyText.length > 500_000 ? fullBodyText.slice(0, 500_000) : fullBodyText;
     const id = await insertContentEntry({ title, bodyText: truncated, sourceType: 'pdf', sourceRef, sensitivity: 'Internal' });
-    res.status(201).json({ data: { id, title, sensitivity: 'Internal' }, meta: { requestId } });
-  } catch (err) {
-    errorResponse(res, 500, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);
-  }
-});
-
-// [F-C01-INGEST-URL] Step 1: fetch + preview
-router.post('/ingest/url', async (req, res) => {
-  const requestId = reqId();
-  const { url } = req.body;
-  if (!url) return errorResponse(res, 400, 'CURATOR_INVALID_URL', 'url is required', requestId);
-  try {
-    new URL(url);
-  } catch {
-    return errorResponse(res, 400, 'CURATOR_INVALID_URL', 'Invalid URL format', requestId);
-  }
-  try {
-    if (await contentEntryExistsBySourceRef(url)) return errorResponse(res, 409, 'CURATOR_DUPLICATE', `An entry for this URL already exists: ${url}`, requestId);
-    const { title, bodyText } = await fetchUrl(url);
-    res.json({
-      data: { title, bodyTextPreview: bodyText.slice(0, 500), fullBodyText: bodyText, sourceRef: url },
-      meta: { requestId },
-    });
-  } catch (err: any) {
-    errorResponse(res, 502, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);
-  }
-});
-
-// [F-C01-INGEST-URL] Step 2: confirm + save
-router.post('/ingest/url/confirm', async (req, res) => {
-  const requestId = reqId();
-  const { title, sourceRef, fullBodyText } = req.body;
-  if (!title || !sourceRef || !fullBodyText) return errorResponse(res, 400, 'CURATOR_INVALID_INPUT', 'title, sourceRef, and fullBodyText are required', requestId);
-  try {
-    const truncated = fullBodyText.length > 500_000 ? fullBodyText.slice(0, 500_000) : fullBodyText;
-    const id = await insertContentEntry({ title, bodyText: truncated, sourceType: 'url', sourceRef, sensitivity: 'Internal' });
     res.status(201).json({ data: { id, title, sensitivity: 'Internal' }, meta: { requestId } });
   } catch (err) {
     errorResponse(res, 500, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);

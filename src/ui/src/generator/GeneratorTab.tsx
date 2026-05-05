@@ -52,7 +52,10 @@ export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChang
     }
   }, [showToast, onBusyChange]);
 
-  useEffect(() => { handleSuggest(); }, [handleSuggest]);
+  const handleSuggestRef = useRef(handleSuggest);
+  useEffect(() => { handleSuggestRef.current = handleSuggest; }, [handleSuggest]);
+
+  useEffect(() => { handleSuggestRef.current(); }, []);
 
   async function handleGenerate() {
     if (selected.length === 0) { showToast('Select at least one topic.', 'warning'); return; }

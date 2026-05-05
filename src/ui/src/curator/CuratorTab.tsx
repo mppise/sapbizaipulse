@@ -3,7 +3,6 @@ import { apiFetch } from '../api';
 import { useToast } from '../components/ToastContainer';
 import EntryList from './EntryList';
 import IngestPdfModal from './IngestPdfModal';
-import IngestUrlModal from './IngestUrlModal';
 
 export interface ContentEntry {
   id: string;
@@ -30,14 +29,16 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
-  const [showUrl, setShowUrl] = useState(false);
   const [progress, setProgress] = useState<ProgressRow[]>([]);
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
     try {
       const data = await apiFetch<ContentEntry[]>('/curator/entries');
-      setEntries(Array.isArray(data) ? data : []);
+      const sorted = Array.isArray(data)
+        ? [...data].sort((a, b) => new Date(b.ingestionDate).getTime() - new Date(a.ingestionDate).getTime())
+        : [];
+      setEntries(sorted);
     } catch (e: any) {
       showToast(e.message);
     } finally {
@@ -121,15 +122,12 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
 
   useEffect(() => {
     setHeaderActions(
-      <div className="d-flex gap-2 ms-auto me-2">
+      <div className="d-flex gap-2 flex-wrap">
         <button className="btn btn-sm" style={{ background: '#0070f3', color: '#fff', borderColor: '#0070f3' }} onClick={() => handleFetchRef.current()} disabled={fetching}>
           {fetching ? <><span className="spinner-border spinner-border-sm me-1" />Fetching…</> : <><i className="bi bi-cloud-download me-1" />Fetch Latest</>}
         </button>
         <button className="btn btn-sm" style={{ background: '#e65c00', color: '#fff', borderColor: '#e65c00' }} onClick={() => setShowPdf(true)} disabled={fetching}>
           <i className="bi bi-file-earmark-pdf me-1" />Upload PDF
-        </button>
-        <button className="btn btn-sm" style={{ background: '#1a7f4b', color: '#fff', borderColor: '#1a7f4b' }} onClick={() => setShowUrl(true)} disabled={fetching}>
-          <i className="bi bi-link-45deg me-1" />Add URL
         </button>
       </div>
     );
@@ -180,12 +178,6 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
         <IngestPdfModal
           onClose={() => setShowPdf(false)}
           onSaved={() => { setShowPdf(false); loadEntries(); }}
-        />
-      )}
-      {showUrl && (
-        <IngestUrlModal
-          onClose={() => setShowUrl(false)}
-          onSaved={() => { setShowUrl(false); loadEntries(); }}
         />
       )}
     </div>

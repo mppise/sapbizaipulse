@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect, useRef } from 'react';
 import CuratorTab from './curator/CuratorTab';
 import GeneratorTab from './generator/GeneratorTab';
 import NewsletterTab from './newsletters/NewsletterTab';
@@ -43,15 +43,30 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('curator');
   const [busy, setBusy] = useState(false);
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const helpRef = useRef<HTMLDivElement>(null);
 
   function handleTabChange(t: Tab) {
     setHeaderActions(null);
     setTab(t);
   }
 
+  // Close help popover when clicking outside
+  useEffect(() => {
+    if (!showHelp) return;
+    function handleClick(e: MouseEvent) {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
+        setShowHelp(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showHelp]);
+
   const active = TABS.find(t => t.id === tab)!;
   const activeIdx = TABS.findIndex(t => t.id === tab);
   const nextTab = activeIdx < TABS.length - 1 ? TABS[activeIdx + 1] : null;
+
   return (
     <div className="app-shell">
 
@@ -66,30 +81,40 @@ export default function App() {
         </div>
         <div className="app-topbar-divider" />
         <div className="app-topbar-actions">
+          {/* How it works help button */}
+          <div className="help-popover-anchor" ref={helpRef}>
+            <button
+              className="topbar-btn"
+              onClick={() => setShowHelp(v => !v)}
+              aria-label="How it works"
+              aria-expanded={showHelp}
+            >
+              <i className="bi bi-question-circle" />
+              <span className="help-btn-label">How it works</span>
+            </button>
+            {showHelp && (
+              <div className="help-popover" role="tooltip">
+                <div className="help-popover-arrow" />
+                <p className="help-popover-heading">How it works — 3 steps</p>
+                <ol className="help-popover-list">
+                  <li><strong>Curate</strong> — Fetch or upload SAP AI content and approve entries.</li>
+                  <li><strong>Generate</strong> — Select topics and generate a newsletter draft with AI.</li>
+                  <li><strong>Publish</strong> — Review, edit, and publish the draft as HTML.</li>
+                </ol>
+              </div>
+            )}
+          </div>
           <button
             className="topbar-btn"
             onClick={() => { localStorage.removeItem('apiKey'); window.location.reload(); }}
           >
-            <i className="bi bi-key" /> Change API Key
+            <i className="bi bi-key" /> <span className="help-btn-label">Change API Key</span>
           </button>
         </div>
       </header>
 
       {/* Busy strip */}
       {busy && <div className="busy-strip" />}
-
-      {/* How it works banner */}
-      <div className="workflow-banner">
-        <i className="bi bi-info-circle-fill workflow-banner-icon" />
-        <div className="workflow-banner-text">
-          <strong>How it works — 3 steps:&nbsp;</strong>
-          <span><strong>Step 1 · Curate</strong> — Fetch or upload SAP AI content and approve entries.</span>
-          <span className="workflow-banner-sep">›</span>
-          <span><strong>Step 2 · Generate</strong> — Select topics and generate a newsletter draft with AI.</span>
-          <span className="workflow-banner-sep">›</span>
-          <span><strong>Step 3 · Publish</strong> — Review, edit, and publish the draft as HTML.</span>
-        </div>
-      </div>
 
       {/* Workflow stepper bar */}
       <nav className="workflow-bar">
@@ -137,24 +162,28 @@ export default function App() {
             <div className="content-header-title">{active.label}</div>
             <div className="content-header-desc">{active.desc}</div>
           </div>
-          {headerActions}
-          {nextTab ? (
-            <button
-              className="btn btn-outline-primary btn-sm ms-auto"
-              onClick={() => handleTabChange(nextTab.id)}
-              disabled={busy}
-            >
-              Next: {nextTab.stepLabel} <i className="bi bi-arrow-right ms-1" />
-            </button>
-          ) : (
-            <button
-              className="btn btn-outline-secondary btn-sm ms-auto"
-              onClick={() => handleTabChange(TABS[0].id)}
-              disabled={busy}
-            >
-              <i className="bi bi-arrow-counterclockwise me-1" /> Start Over
-            </button>
-          )}
+          <div className="content-header-actions">
+            {headerActions}
+          </div>
+          <div className="content-header-nav">
+            {nextTab ? (
+              <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => handleTabChange(nextTab.id)}
+                disabled={busy}
+              >
+                Next: {nextTab.stepLabel} <i className="bi bi-arrow-right ms-1" />
+              </button>
+            ) : (
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => handleTabChange(TABS[0].id)}
+                disabled={busy}
+              >
+                <i className="bi bi-arrow-counterclockwise me-1" /> Start Over
+              </button>
+            )}
+          </div>
         </div>
         <div className="app-content-body">
           {tab === 'curator'     && <CuratorTab     onBusyChange={setBusy} setHeaderActions={setHeaderActions} />}

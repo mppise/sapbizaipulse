@@ -35,7 +35,7 @@ export default function TopicSelector({ topics, selected, onChange }: Props) {
         </span>
       </h6>
       {topics.length === 0 && <p className="text-muted small">No topics found for the active timeframe.</p>}
-      <div className="list-group list-group-flush" style={{ maxHeight: 400, overflowY: 'auto' }}>
+      <div className="list-group list-group-flush" style={{ maxHeight: 'min(400px, 50vh)', overflowY: 'auto' }}>
         {topics.map((t) => {
           const checked = isSelected(t.title, selected);
           return (
