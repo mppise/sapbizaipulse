@@ -88,38 +88,61 @@ export async function extractPageContent(url: string): Promise<{ title: string; 
   }
 }
 
-// Scrape article links from a topic landing page.
+// Per-domain rules for deciding whether a link is an article worth ingesting.
+// Each entry is a list of path-substring patterns — a link matches if its path contains ANY of them.
+// Domains not listed fall through to the SAP Community default patterns.
+const DOMAIN_ARTICLE_PATTERNS: Record<string, string[]> = {
+  'news.sap.com':  [],          // handled separately via date-segment pattern
+  'blogs.sap.com': ['/'],       // any path is a potential article — filtered by title length
+};
+
+// Returns true if the URL looks like an article link for the given hostname.
+function isArticleLink(hostname: string, path: string): boolean {
+  if (hostname === 'news.sap.com') {
+    // news.sap.com article paths look like /2024/05/article-slug/ or /2024/05/12/slug/
+    return /^\/\d{4}\/\d{2}\//.test(path);
+  }
+  if (hostname === 'blogs.sap.com') {
+    // blogs.sap.com — exclude tag/category/author/page index paths
+    return !/^\/(tag|category|author|page|wp-content|feed)\//i.test(path) && path.split('/').filter(Boolean).length >= 1;
+  }
+  // SAP Community default: blog posts (/ba-p/) and discussions (/td-p/)
+  return path.includes('/ba-p/') || path.includes('/td-p/');
+}
+
 // Returns links whose href contains SAP Community article path patterns.
 export async function scrapeArticleLinks(url: string): Promise<{ title: string; url: string }[]> {
   log('info', 'Scraping article links from landing page', { url });
   const page = await newPage();
+  const hostname = new URL(url).hostname;
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(3000);
 
     const base = new URL(url).origin;
-    const links = await page.evaluate((baseUrl: string) => {
+    const rawLinks = await page.evaluate((baseUrl: string) => {
       // @ts-ignore
       const anchors = Array.from(document.querySelectorAll('a[href]')) as any[];
       const seen = new Set<string>();
-      const results: { title: string; url: string }[] = [];
+      const results: { title: string; url: string; path: string }[] = [];
       for (const a of anchors) {
         const href: string = a.getAttribute('href') ?? '';
         const full = href.startsWith('http') ? href : `${baseUrl}${href.startsWith('/') ? '' : '/'}${href}`;
-        // Only keep actual article/post URLs — /ba-p/ (blog posts) and /td-p/ (discussions)
-        // Exclude category pages (/ct-p/), board indexes (/bg-p/, /f/), and user profiles
-        if (!full.includes('/ba-p/') && !full.includes('/td-p/')) continue;
         const clean = full.split('?')[0].split('#')[0];
         if (seen.has(clean)) continue;
         seen.add(clean);
-        // Prefer the title from .lia-message-subject inside the link, fall back to innerText
         const subjectEl = a.querySelector('.lia-message-subject, h2, h3');
         const text = (subjectEl ?? a).innerText?.trim().replace(/\s+/g, ' ') ?? '';
         if (text.length < 5) continue;
-        results.push({ title: text, url: clean });
+        try { results.push({ title: text, url: clean, path: new URL(clean).pathname }); } catch { /* skip invalid */ }
       }
       return results;
-    }, base) as { title: string; url: string }[];
+    }, base) as { title: string; url: string; path: string }[];
+
+    const links = rawLinks.filter(l => {
+      try { return new URL(l.url).hostname === hostname && isArticleLink(hostname, l.path); }
+      catch { return false; }
+    }).map(({ title, url: u }) => ({ title, url: u }));
 
     log('info', 'Article links scraped', { url, count: links.length });
     return links;

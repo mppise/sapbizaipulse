@@ -14,13 +14,9 @@ export interface ContentEntry {
   sensitivity: 'Internal' | 'Newsletter-ready';
 }
 
-type ProgressStatus = 'processing' | 'ingested' | 'skipped' | 'error';
-
-interface ProgressRow {
+interface CurrentProgress {
   url: string;
   title?: string;
-  status: ProgressStatus;
-  detail?: string;
 }
 
 export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyChange: (busy: boolean) => void; setHeaderActions: (node: ReactNode) => void }) {
@@ -29,7 +25,7 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
-  const [progress, setProgress] = useState<ProgressRow[]>([]);
+  const [currentProgress, setCurrentProgress] = useState<CurrentProgress | null>(null);
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -50,7 +46,7 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
 
   const handleFetch = useCallback(async () => {
     setFetching(true);
-    setProgress([]);
+    setCurrentProgress(null);
     onBusyChange(true);
     const apiKey = localStorage.getItem('apiKey') ?? '';
 
@@ -67,23 +63,28 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
 
       const dispatch = (event: string, data: Record<string, unknown>) => {
         if (event === 'article_processing') {
-          setProgress(p => [...p, { url: data.url as string, title: data.title as string, status: 'processing' }]);
+          setCurrentProgress({ url: data.url as string, title: data.title as string });
         } else if (event === 'article_ingested') {
-          setProgress(p => p.map(r => r.url === data.url ? { ...r, status: 'ingested' } : r));
-        } else if (event === 'article_skipped') {
-          setProgress(p => p.map(r => r.url === data.url
-            ? { ...r, status: 'skipped', detail: data.reason as string }
-            : r));
-        } else if (event === 'article_error') {
-          setProgress(p => p.map(r => r.url === data.url
-            ? { ...r, status: 'error', detail: data.message as string }
-            : r));
+          setCurrentProgress(null);
+          // Immediately prepend the new entry to the list
+          setEntries(prev => [{
+            id: '',
+            title: data.title as string,
+            sourceType: 'auto-fetch',
+            sourceRef: data.url as string,
+            ingestionDate: new Date().toISOString(),
+            approvedAt: null,
+            sensitivity: 'Internal',
+          } as ContentEntry, ...prev]);
+        } else if (event === 'article_skipped' || event === 'article_error') {
+          setCurrentProgress(null);
         } else if (event === 'fetch_complete') {
           const added = data.added as number;
           const skipped = data.skipped as number;
           const errors = data.errors as number;
           const variant = errors > 0 ? 'warning' : 'success';
           showToast(`Fetched: ${added} added, ${skipped} skipped${errors > 0 ? `, ${errors} failed` : ''}`, variant);
+          // Reload to get accurate IDs and ingestion dates from the server
           loadEntries();
         } else if (event === 'fetch_error') {
           showToast(data.message as string);
@@ -133,36 +134,14 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
     );
   }, [fetching, setHeaderActions]);
 
-  const statusBadge = (s: ProgressStatus) => {
-    if (s === 'processing') return <span className="badge rounded-pill text-bg-primary" style={{ fontSize: '.65rem' }}>Processing…</span>;
-    if (s === 'ingested')   return <span className="badge rounded-pill text-bg-success" style={{ fontSize: '.65rem' }}>Ingested</span>;
-    if (s === 'skipped')    return <span className="badge rounded-pill text-bg-secondary" style={{ fontSize: '.65rem' }}>Skipped</span>;
-    if (s === 'error')      return <span className="badge rounded-pill text-bg-danger" style={{ fontSize: '.65rem' }}>Error</span>;
-  };
-
-  const currentRow = progress.findLast(r => r.status === 'processing') ?? progress[progress.length - 1];
-  const previousRow = currentRow ? progress.slice(0, progress.indexOf(currentRow)).findLast(r => r.status !== 'processing') : undefined;
-
   return (
     <div>
-      {progress.length > 0 && (
-        <div className="mb-3 border rounded px-3 py-2" style={{ background: '#f8f9fb', fontSize: '.8rem' }}>
-          {previousRow && (
-            <div className="d-flex align-items-center gap-2 pb-1 mb-1" style={{ borderBottom: '1px solid #eee', opacity: 0.7 }}>
-              <div className="text-truncate flex-grow-1" title={previousRow.url}>
-                {previousRow.title ?? previousRow.url}
-              </div>
-              {statusBadge(previousRow.status)}
-            </div>
-          )}
-          {currentRow && (
-            <div className="d-flex align-items-center gap-2">
-              <div className="text-truncate flex-grow-1" title={currentRow.url}>
-                {currentRow.title ?? currentRow.url}
-              </div>
-              {statusBadge(currentRow.status)}
-            </div>
-          )}
+      {currentProgress && (
+        <div className="mb-3 border rounded px-3 py-2 d-flex align-items-center gap-2" style={{ background: '#f8f9fb', fontSize: '.8rem' }}>
+          <span className="spinner-border spinner-border-sm text-primary flex-shrink-0" />
+          <div className="text-truncate flex-grow-1" title={currentProgress.url}>
+            {currentProgress.title ?? currentProgress.url}
+          </div>
         </div>
       )}
 

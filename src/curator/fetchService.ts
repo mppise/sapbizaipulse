@@ -9,20 +9,51 @@ const log = (level: 'info' | 'warn' | 'error', message: string, extra?: Record<s
 
 export type FetchEmitter = (event: string, data: Record<string, unknown>) => void;
 
+// Per-domain cutoff: max(2 weeks ago, most recent ingestion_date for entries from that domain).
+// A domain with no prior entries always gets the 2-week default, so newly added sources
+// are back-filled rather than skipped entirely.
+function computeCutoffForDomain(hostname: string, entries: { sourceRef: string; ingestionDate: Date }[]): Date {
+  const twoWeeksAgo = new Date(Date.now() - TWO_WEEKS_MS);
+  const domainEntries = entries.filter(e => {
+    try { return new URL(e.sourceRef).hostname === hostname; } catch { return false; }
+  });
+  if (domainEntries.length === 0) {
+    log('info', 'No existing entries for domain — using 2-week cutoff', { hostname, cutoff: twoWeeksAgo.toISOString() });
+    return twoWeeksAgo;
+  }
+  const mostRecent = domainEntries.reduce((latest, e) =>
+    e.ingestionDate > latest ? e.ingestionDate : latest,
+    domainEntries[0].ingestionDate
+  );
+  const cutoff = mostRecent > twoWeeksAgo ? mostRecent : twoWeeksAgo;
+  log('info', 'Cutoff calculated for domain', { hostname, mostRecentIngestion: mostRecent.toISOString(), cutoff: cutoff.toISOString() });
+  return cutoff;
+}
+
 // [F-C01-AUTOFETCH] Crawl topic landing pages, discover articles, ingest those within cutoff window.
 // Body text is fetched and synthesized at approve time — only title + URL stored here.
 export async function autoFetch(
   emit: FetchEmitter = () => {},
 ): Promise<{ added: number; skipped: number; errors: { sourceRef: string; message: string }[] }> {
   const urls = loadTopicUrls();
-  const cutoff = await getCutoff();
-  log('info', 'Starting auto-fetch', { topicPages: urls.length, cutoff: cutoff.toISOString() });
+  log('info', 'Starting auto-fetch', { topicPages: urls.length });
+
+  // Load all existing entries once — used for per-domain cutoff computation
+  let allEntries: { sourceRef: string; ingestionDate: Date }[] = [];
+  try {
+    allEntries = await listContentEntries();
+  } catch {
+    log('warn', 'Could not load existing entries — all domains will use 2-week cutoff');
+  }
 
   let added = 0, skipped = 0;
   const errors: { sourceRef: string; message: string }[] = [];
 
   for (const landingUrl of urls) {
-    log('info', 'Processing landing page', { url: landingUrl });
+    const hostname = (() => { try { return new URL(landingUrl).hostname; } catch { return ''; } })();
+    const cutoff = computeCutoffForDomain(hostname, allEntries);
+
+    log('info', 'Processing landing page', { url: landingUrl, cutoff: cutoff.toISOString() });
     emit('landing_start', { url: landingUrl });
     let articleLinks: { title: string; url: string }[];
     try {
@@ -50,10 +81,10 @@ export async function autoFetch(
         emit('article_processing', { url: article.url, title: article.title });
         const publishedDate = await scrapeArticleDate(article.url);
 
-        if (publishedDate && publishedDate < cutoff) {
-          log('info', 'Article older than cutoff — stopping crawl for this landing page', {
+        if (!publishedDate || publishedDate < cutoff) {
+          log('info', 'Article at or beyond cutoff (or no date) — stopping crawl for this landing page', {
             url: article.url,
-            publishedDate: publishedDate.toISOString(),
+            publishedDate: publishedDate?.toISOString() ?? 'unknown',
             cutoff: cutoff.toISOString(),
           });
           skipped++;
@@ -81,26 +112,4 @@ export async function autoFetch(
   log('info', 'Auto-fetch complete', { added, skipped, errors: errors.length });
   emit('fetch_complete', { added, skipped, errors: errors.length });
   return { added, skipped, errors };
-}
-
-// Cutoff = max(2 weeks ago, most recent ingestion_date in DB)
-async function getCutoff(): Promise<Date> {
-  const twoWeeksAgo = new Date(Date.now() - TWO_WEEKS_MS);
-  try {
-    const entries = await listContentEntries();
-    if (entries.length === 0) {
-      log('info', 'No existing entries — using 2-week cutoff', { cutoff: twoWeeksAgo.toISOString() });
-      return twoWeeksAgo;
-    }
-    const mostRecent = entries.reduce((latest, e) =>
-      e.ingestionDate > latest ? e.ingestionDate : latest,
-      entries[0].ingestionDate
-    );
-    const cutoff = mostRecent > twoWeeksAgo ? mostRecent : twoWeeksAgo;
-    log('info', 'Cutoff calculated', { mostRecentIngestion: mostRecent.toISOString(), twoWeeksAgo: twoWeeksAgo.toISOString(), cutoff: cutoff.toISOString() });
-    return cutoff;
-  } catch {
-    log('warn', 'Could not determine last ingestion date — falling back to 2-week cutoff');
-    return twoWeeksAgo;
-  }
 }

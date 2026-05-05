@@ -21,7 +21,7 @@
 - [SAP Cloud SDK](https://pages.community.sap.com/topics/cloud-sdk)
 - [SAP Document AI](https://pages.community.sap.com/topics/document-ai)
 
-### SAP News
+## SAP News
 
 - [SAP News](https://news.sap.com/)
 - [SAP News - AI](https://news.sap.com/topics/artificial-intelligence/)
