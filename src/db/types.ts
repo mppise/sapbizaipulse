@@ -9,6 +9,7 @@ export interface ContentEntry {
   sourceType: SourceType;
   sourceRef: string;
   ingestionDate: Date;
+  publishedDate: Date | null;
   approvedAt: Date | null;
   sensitivity: Sensitivity;
   embedding: number[] | null;
@@ -37,6 +38,7 @@ export interface InsertContentEntryInput {
   sourceType: SourceType;
   sourceRef: string;
   sensitivity: Sensitivity;
+  publishedDate?: Date | null;
 }
 
 export interface UpdateContentEntryInput {
@@ -53,6 +55,6 @@ export interface InsertNewsletterInput {
 
 export interface UpdateNewsletterInput {
   status?: NewsletterStatus;
-  publishedAt?: Date;
+  publishedAt?: Date | null;
   objectStoreKey?: string;
 }

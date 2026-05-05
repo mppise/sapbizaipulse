@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, ReactNode } from 'react';
 import { apiFetch } from '../api';
 import { useToast } from '../components/ToastContainer';
 import TopicSelector, { type ClusteredTopic, type TopicInput } from './TopicSelector';
@@ -14,7 +14,7 @@ interface SuggestResult {
 
 type Tab = 'curator' | 'generator' | 'newsletters';
 
-export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChange: (busy: boolean) => void; onNavigate: (tab: Tab) => void }) {
+export default function GeneratorTab({ onBusyChange, onNavigate, setHeaderActions }: { onBusyChange: (busy: boolean) => void; onNavigate: (tab: Tab) => void; setHeaderActions: (node: ReactNode) => void }) {
   const { showToast } = useToast();
   const [topics, setTopics] = useState<ClusteredTopic[]>([]);
   const [selected, setSelected] = useState<TopicInput[]>([]);
@@ -36,7 +36,6 @@ export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChang
       const result = await apiFetch<SuggestResult>('/generator/topics/suggest');
       const clustered = Array.isArray(result.topics) ? result.topics : [];
       setTopics(clustered);
-      // Auto-select all topics
       setSelected(clustered.map((t) => ({ type: 'clustered', title: t.title, entryIds: t.entryIds })));
       setSuggestMeta({
         entryCount: result.entryCount,
@@ -56,6 +55,25 @@ export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChang
   useEffect(() => { handleSuggestRef.current = handleSuggest; }, [handleSuggest]);
 
   useEffect(() => { handleSuggestRef.current(); }, []);
+
+  const handleGenerateRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    setHeaderActions(
+      <div className="d-flex gap-2 flex-wrap">
+        <button className="btn btn-sm" style={{ background: '#1a7f4b', color: '#fff', borderColor: '#1a7f4b' }} onClick={() => handleSuggestRef.current()} disabled={suggesting || generating}>
+          {suggesting ? <><span className="spinner-border spinner-border-sm me-1" />Suggesting…</> : <><i className="bi bi-arrow-clockwise me-1" />Suggest Topics</>}
+        </button>
+        {selected.length > 0 && (
+          <button className="btn btn-sm" style={{ background: '#6b3fa0', color: '#fff', borderColor: '#6b3fa0' }} onClick={() => handleGenerateRef.current()} disabled={generating || suggesting}>
+            {generating
+              ? <><span className="spinner-border spinner-border-sm me-1" />Generating…</>
+              : <><i className="bi bi-stars me-1" />Generate Newsletter ({selected.length} topic{selected.length !== 1 ? 's' : ''})</>}
+          </button>
+        )}
+      </div>
+    );
+  }, [suggesting, generating, selected, setHeaderActions]);
 
   async function handleGenerate() {
     if (selected.length === 0) { showToast('Select at least one topic.', 'warning'); return; }
@@ -144,6 +162,8 @@ export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChang
     }
   }
 
+  handleGenerateRef.current = handleGenerate;
+
   function handleNextCta() {
     if (autoNavTimer.current) { clearTimeout(autoNavTimer.current); autoNavTimer.current = null; }
     onNavigate('newsletters');
@@ -160,20 +180,13 @@ export default function GeneratorTab({ onBusyChange, onNavigate }: { onBusyChang
         </div>
       )}
 
-      <div className="d-flex gap-2 mb-3 flex-wrap align-items-center">
-        {selected.length > 0 && (
-          <button className="btn btn-success" onClick={handleGenerate} disabled={generating}>
-            {generating
-              ? <><span className="spinner-border spinner-border-sm me-2" />Generating…</>
-              : <><i className="bi bi-stars me-2" />Generate Newsletter ({selected.length} topic{selected.length !== 1 ? 's' : ''})</>}
-          </button>
-        )}
-        {suggestMeta && !suggesting && (
-          <span className="text-muted small ms-1">
+      {suggestMeta && !suggesting && (
+        <div className="mb-3">
+          <span className="text-muted small">
             {suggestMeta.entryCount} entr{suggestMeta.entryCount !== 1 ? 'ies' : 'y'} since {fromDate}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {topics.length > 0 && !generating && (
         <TopicSelector

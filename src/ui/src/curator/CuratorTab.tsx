@@ -10,6 +10,7 @@ export interface ContentEntry {
   sourceType: string;
   sourceRef: string;
   ingestionDate: string;
+  publishedDate: string | null;
   approvedAt: string | null;
   sensitivity: 'Internal' | 'Newsletter-ready';
 }
@@ -73,6 +74,7 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
             sourceType: 'auto-fetch',
             sourceRef: data.url as string,
             ingestionDate: new Date().toISOString(),
+            publishedDate: null,
             approvedAt: null,
             sensitivity: 'Internal',
           } as ContentEntry, ...prev]);
@@ -124,10 +126,10 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
   useEffect(() => {
     setHeaderActions(
       <div className="d-flex gap-2 flex-wrap">
-        <button className="btn btn-sm" style={{ background: '#0070f3', color: '#fff', borderColor: '#0070f3' }} onClick={() => handleFetchRef.current()} disabled={fetching}>
+        <button className="btn btn-sm" style={{ background: '#1a7f4b', color: '#fff', borderColor: '#1a7f4b' }} onClick={() => handleFetchRef.current()} disabled={fetching}>
           {fetching ? <><span className="spinner-border spinner-border-sm me-1" />Fetching…</> : <><i className="bi bi-cloud-download me-1" />Fetch Latest</>}
         </button>
-        <button className="btn btn-sm" style={{ background: '#e65c00', color: '#fff', borderColor: '#e65c00' }} onClick={() => setShowPdf(true)} disabled={fetching}>
+        <button className="btn btn-sm" style={{ background: '#6b3fa0', color: '#fff', borderColor: '#6b3fa0' }} onClick={() => setShowPdf(true)} disabled={fetching}>
           <i className="bi bi-file-earmark-pdf me-1" />Upload PDF
         </button>
       </div>
@@ -150,7 +152,12 @@ export default function CuratorTab({ onBusyChange, setHeaderActions }: { onBusyC
           <span className="spinner-border" />
         </div>
       ) : (
-        <EntryList entries={entries} onRefresh={loadEntries} onBusyChange={onBusyChange} />
+        <EntryList
+            entries={entries}
+            onUpdate={(id, patch) => setEntries(prev => prev.map(e => e.id === id ? { ...e, ...patch } : e))}
+            onRemove={(id) => setEntries(prev => prev.filter(e => e.id !== id))}
+            onBusyChange={onBusyChange}
+          />
       )}
 
       {showPdf && (

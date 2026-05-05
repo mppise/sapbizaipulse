@@ -212,6 +212,22 @@ function formatChunks(chunks: VectorSearchResult[]): string {
 ### 6.3 Error Case
 - Auto-navigation and the Next CTA must **not** fire on `generation_failed` — only on `generation_complete`.
 
+### 6.4 Refresh Button in Newsletters Tab (F-C02-UX-REFRESH) <!-- F-C02-UX-REFRESH -->
+
+**Location:** Top-right of the Newsletters tab content area, rendered via `setHeaderActions` prop (same mechanism used by CuratorTab for its header actions).
+
+**Label:** `Refresh` with a `bi-arrow-clockwise` icon.
+
+**Behaviour:**
+- On click: re-invokes the `load()` function in `NewsletterTab` — identical to the automatic load that fires when the tab is first navigated to.
+- Button is disabled while `loading` is `true` to prevent concurrent fetches.
+- Uses Bootstrap `btn btn-sm btn-outline-secondary` styling.
+
+**Implementation:**
+- `NewsletterTab` must accept a `setHeaderActions` prop of type `(node: ReactNode) => void` from `App.tsx`.
+- On mount (and whenever `load` identity changes), call `setHeaderActions(...)` to inject the Refresh button into the header.
+- On unmount, call `setHeaderActions(null)` to clear it (use the `useEffect` cleanup).
+
 ---
 
 ## Change History
@@ -221,3 +237,4 @@ function formatChunks(chunks: VectorSearchResult[]): string {
 | — | Initial specification created | 2026-05-03 | SpecGantry |
 | CHG-001 | Redesigned F-C02-SUGGEST: replaced Playwright scraping with two-pass LLM clustering over Newsletter-ready HANA entries; added persona-specific vector search per section | 2026-05-04 | SpecGantry |
 | F-C02-UX-AUTONAV/NEXTCTA | Added §6 UX Detail for auto-navigation and Next CTA | 2026-05-04 | SpecGantry |
+| F-C02-UX-REFRESH | Added §6.4 Refresh button spec for Newsletters tab | 2026-05-05 | SpecGantry |

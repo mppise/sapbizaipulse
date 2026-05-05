@@ -97,6 +97,7 @@ export async function autoFetch(
           sourceType: 'auto-fetch',
           sourceRef: article.url,
           sensitivity: 'Internal',
+          publishedDate,
         });
         log('info', 'Article ingested', { url: article.url, title: article.title, publishedDate: publishedDate?.toISOString() ?? 'unknown' });
         added++;

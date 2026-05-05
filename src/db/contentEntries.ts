@@ -17,9 +17,9 @@ export async function insertContentEntry(input: InsertContentEntryInput): Promis
     const conn = getConnection();
     try {
       await execQuery(conn,
-        `INSERT INTO content_entries (id, title, body_text, source_type, source_ref, sensitivity)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, input.title, input.bodyText ?? '', input.sourceType, input.sourceRef, input.sensitivity]
+        `INSERT INTO content_entries (id, title, body_text, source_type, source_ref, sensitivity, published_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, input.title, input.bodyText ?? '', input.sourceType, input.sourceRef, input.sensitivity, input.publishedDate?.toISOString() ?? null]
       );
     } finally { conn.disconnect(); }
   });
@@ -59,7 +59,7 @@ export async function getContentEntry(id: string): Promise<ContentEntry> {
     const conn = getConnection();
     try {
       const rows = await execQuery<Record<string, unknown>>(conn,
-        `SELECT id, title, body_text, source_type, source_ref, ingestion_date, approved_at, sensitivity
+        `SELECT id, title, body_text, source_type, source_ref, ingestion_date, published_date, approved_at, sensitivity
          FROM content_entries WHERE id = ?`,
         [id]
       );
@@ -75,7 +75,7 @@ export async function listContentEntriesInTimeframe(from: Date): Promise<Content
     const conn = getConnection();
     try {
       const rows = await execQuery<Record<string, unknown>>(conn,
-        `SELECT id, title, body_text, source_type, source_ref, ingestion_date, approved_at, sensitivity
+        `SELECT id, title, body_text, source_type, source_ref, ingestion_date, published_date, approved_at, sensitivity
          FROM content_entries
          WHERE sensitivity = 'Newsletter-ready' AND approved_at > ?
          ORDER BY approved_at DESC`,
@@ -92,7 +92,7 @@ export async function listContentEntries(filter?: { sensitivity?: Sensitivity })
     const conn = getConnection();
     try {
       const params: string[] = [];
-      let sql = `SELECT id, title, source_type, source_ref, ingestion_date, approved_at, sensitivity FROM content_entries`;
+      let sql = `SELECT id, title, source_type, source_ref, ingestion_date, published_date, approved_at, sensitivity FROM content_entries`;
       if (filter?.sensitivity) {
         sql += ` WHERE sensitivity = ?`;
         params.push(filter.sensitivity);
@@ -106,7 +106,7 @@ export async function listContentEntries(filter?: { sensitivity?: Sensitivity })
 
 // [F-C05-CE-UPDATE]
 export async function updateContentEntry(id: string, input: UpdateContentEntryInput): Promise<void> {
-  if (!input.title && !input.sensitivity && !input.approvedAt) return;
+  if (!input.title && !input.sensitivity && !input.approvedAt && input.approvedAt !== null) return;
   await withRetry(async () => {
     const conn = getConnection();
     try {
@@ -114,7 +114,11 @@ export async function updateContentEntry(id: string, input: UpdateContentEntryIn
       const params: (string | null)[] = [];
       if (input.title)      { sets.push('title = ?');       params.push(input.title); }
       if (input.sensitivity){ sets.push('sensitivity = ?'); params.push(input.sensitivity); }
-      if (input.approvedAt) { sets.push('approved_at = ?'); params.push(input.approvedAt.toISOString()); }
+      if (input.approvedAt !== undefined) {
+        sets.push('approved_at = ?');
+        params.push(input.approvedAt ? input.approvedAt.toISOString() : null);
+      }
+      if (!sets.length) return;
       params.push(id);
       await execQuery<Record<string, unknown>>(conn,
         `UPDATE content_entries SET ${sets.join(', ')} WHERE id = ?`, params
@@ -122,6 +126,19 @@ export async function updateContentEntry(id: string, input: UpdateContentEntryIn
     } finally { conn.disconnect(); }
   });
   await getContentEntry(id);
+}
+
+// [F-C05-CE-UNAPPROVE]
+export async function unapproveEntry(id: string): Promise<void> {
+  await withRetry(async () => {
+    const conn = getConnection();
+    try {
+      await execQuery(conn,
+        `UPDATE content_entries SET embedding = NULL, sensitivity = 'Internal', approved_at = NULL WHERE id = ?`,
+        [id]
+      );
+    } finally { conn.disconnect(); }
+  });
 }
 
 // [F-C05-CE-DELETE]
@@ -150,6 +167,7 @@ export async function contentEntryExistsBySourceRef(sourceRef: string): Promise<
 
 function mapContentEntry(row: Record<string, unknown>): ContentEntry {
   const approvedRaw = row.APPROVED_AT ?? row.approved_at;
+  const publishedRaw = row.PUBLISHED_DATE ?? row.published_date;
   return {
     id: row.ID as string ?? row.id as string,
     title: row.TITLE as string ?? row.title as string,
@@ -157,6 +175,7 @@ function mapContentEntry(row: Record<string, unknown>): ContentEntry {
     sourceType: (row.SOURCE_TYPE ?? row.source_type) as ContentEntry['sourceType'],
     sourceRef: row.SOURCE_REF as string ?? row.source_ref as string,
     ingestionDate: new Date((row.INGESTION_DATE ?? row.ingestion_date) as string),
+    publishedDate: publishedRaw ? new Date(publishedRaw as string) : null,
     approvedAt: approvedRaw ? new Date(approvedRaw as string) : null,
     sensitivity: (row.SENSITIVITY ?? row.sensitivity) as ContentEntry['sensitivity'],
     embedding: null,
@@ -165,12 +184,14 @@ function mapContentEntry(row: Record<string, unknown>): ContentEntry {
 
 function mapContentEntryMeta(row: Record<string, unknown>): ContentEntryMeta {
   const approvedRaw = row.APPROVED_AT ?? row.approved_at;
+  const publishedRaw = row.PUBLISHED_DATE ?? row.published_date;
   return {
     id: row.ID as string ?? row.id as string,
     title: row.TITLE as string ?? row.title as string,
     sourceType: (row.SOURCE_TYPE ?? row.source_type) as ContentEntry['sourceType'],
     sourceRef: row.SOURCE_REF as string ?? row.source_ref as string,
     ingestionDate: new Date((row.INGESTION_DATE ?? row.ingestion_date) as string),
+    publishedDate: publishedRaw ? new Date(publishedRaw as string) : null,
     approvedAt: approvedRaw ? new Date(approvedRaw as string) : null,
     sensitivity: (row.SENSITIVITY ?? row.sensitivity) as ContentEntry['sensitivity'],
   };

@@ -61,7 +61,7 @@ router.get('/:id/preview', async (req, res) => {
   const requestId = reqId();
   try {
     const nl = await getNewsletter(req.params.id);
-    if (nl.status === 'published') return err(res, 409, 'LIFECYCLE_NOT_DRAFT', `Newsletter is already published. Access it at /published/${nl.filename}.html`, requestId);
+    if (nl.status === 'published') return err(res, 409, 'LIFECYCLE_NOT_DRAFT', `Newsletter is published — unpublish it first to edit.`, requestId);
     const markdownContent = await getObjectAsString(nl.objectStoreKey!);
     res.json({ data: { markdownContent }, meta: { requestId } });
   } catch (e: any) {
@@ -97,6 +97,22 @@ router.post('/:id/publish', async (req, res) => {
     if (e.code === 'LIFECYCLE_STORE_READ_FAILED') return err(res, 502, e.code, e.message, requestId);
     if (e.code === 'LIFECYCLE_STORE_WRITE_FAILED') return err(res, 502, e.code, e.message, requestId);
     if (e.code === 'LIFECYCLE_CONVERT_FAILED') return err(res, 500, e.code, e.message, requestId);
+    err(res, 500, 'LIFECYCLE_ERROR', (e as Error).message, requestId);
+  }
+});
+
+// [F-C03-UNPUBLISH]
+router.post('/:id/unpublish', async (req, res) => {
+  const requestId = reqId();
+  try {
+    const nl = await getNewsletter(req.params.id);
+    if (nl.status === 'draft') return err(res, 409, 'LIFECYCLE_NOT_PUBLISHED', 'Newsletter is not published', requestId);
+    await deleteObject(`published/${nl.filename}.html`);
+    await updateNewsletter(nl.id, { status: 'draft', publishedAt: null, objectStoreKey: `drafts/${nl.filename}.md` });
+    res.json({ data: { id: nl.id, filename: nl.filename, status: 'draft' }, meta: { requestId } });
+  } catch (e: any) {
+    if (e.code === 'DS_NOT_FOUND') return err(res, 404, 'LIFECYCLE_NOT_FOUND', e.message, requestId);
+    if (e.code === 'LIFECYCLE_STORE_WRITE_FAILED') return err(res, 502, e.code, e.message, requestId);
     err(res, 500, 'LIFECYCLE_ERROR', (e as Error).message, requestId);
   }
 });

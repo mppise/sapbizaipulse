@@ -10,44 +10,47 @@ export async function approveEntry(id: string): Promise<{ id: string; sensitivit
     throw Object.assign(new Error('Entry is already Newsletter-ready'), { code: 'CURATOR_ALREADY_APPROVED' });
   }
 
-  let rawText: string;
-  let betterTitle: string | null = null;
-
   if (entry.sourceType === 'pdf') {
-    // PDF body text was already extracted at upload time — use it directly
-    rawText = entry.bodyText;
+    // PDF: body_text was extracted at upload — synthesize from it, then embed
+    const result = await generateCompletion('synthesize-content', {
+      url: entry.sourceRef,
+      raw_content: entry.bodyText.slice(0, 20_000),
+    });
+    const synthesized = result.content;
+
+    if (synthesized.trim() === 'INSUFFICIENT_CONTENT') {
+      throw Object.assign(new Error('Page did not contain sufficient content to synthesize'), { code: 'CURATOR_INSUFFICIENT_CONTENT' });
+    }
+
+    await updateContentEntryBodyText(id, synthesized);
+    const embedding = await generateEmbedding(synthesized);
+    await updateContentEntryEmbedding(id, embedding);
+    await updateContentEntry(id, { sensitivity: 'Newsletter-ready', approvedAt: new Date() });
   } else {
-    // Re-fetch the actual page content via Playwright for url/auto-fetch entries
+    // URL / auto-fetch: fetch fresh content, synthesize, save body_text, then embed
     const { title: fetchedTitle, bodyText: fetched } = await extractPageContent(entry.sourceRef);
-    rawText = fetched;
-    betterTitle = fetchedTitle && fetchedTitle.length > 5 && fetchedTitle !== entry.sourceRef
-      ? fetchedTitle
-      : null;
+    const betterTitle = fetchedTitle && fetchedTitle.length > 5 && fetchedTitle !== entry.sourceRef
+      ? fetchedTitle : null;
+
+    if (betterTitle && betterTitle !== entry.title) {
+      await updateContentEntry(id, { title: betterTitle });
+    }
+
+    const result = await generateCompletion('synthesize-content', {
+      url: entry.sourceRef,
+      raw_content: fetched.slice(0, 20_000),
+    });
+    const synthesized = result.content;
+
+    if (synthesized.trim() === 'INSUFFICIENT_CONTENT') {
+      throw Object.assign(new Error('Page did not contain sufficient content to synthesize'), { code: 'CURATOR_INSUFFICIENT_CONTENT' });
+    }
+
+    await updateContentEntryBodyText(id, synthesized);
+    const embedding = await generateEmbedding(synthesized);
+    await updateContentEntryEmbedding(id, embedding);
+    await updateContentEntry(id, { sensitivity: 'Newsletter-ready', approvedAt: new Date() });
   }
-
-  // Update title if improved
-  if (betterTitle && betterTitle !== entry.title) {
-    await updateContentEntry(id, { title: betterTitle });
-  }
-
-  // Synthesize raw text into a clean structured summary via LLM
-  const result = await generateCompletion('synthesize-content', {
-    url: entry.sourceRef,
-    raw_content: rawText.slice(0, 20_000),
-  });
-  const synthesized = result.content;
-
-  if (synthesized.trim() === 'INSUFFICIENT_CONTENT') {
-    throw Object.assign(new Error('Page did not contain sufficient content to synthesize'), { code: 'CURATOR_INSUFFICIENT_CONTENT' });
-  }
-
-  // Persist synthesized body text
-  await updateContentEntryBodyText(id, synthesized);
-
-  // Generate embedding from the synthesized summary
-  const embedding = await generateEmbedding(synthesized);
-  await updateContentEntryEmbedding(id, embedding);
-  await updateContentEntry(id, { sensitivity: 'Newsletter-ready', approvedAt: new Date() });
 
   return { id, sensitivity: 'Newsletter-ready' };
 }

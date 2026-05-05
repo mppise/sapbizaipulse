@@ -20,6 +20,7 @@ export async function vectorSearch(queryEmbedding: number[], topK: number): Prom
       );
       return rows.map((row) => {
         const approvedRaw = row.APPROVED_AT ?? row.approved_at;
+        const publishedRaw = row.PUBLISHED_DATE ?? row.published_date;
         return {
           entry: {
             id: row.ID as string ?? row.id as string,
@@ -28,6 +29,7 @@ export async function vectorSearch(queryEmbedding: number[], topK: number): Prom
             sourceType: (row.SOURCE_TYPE ?? row.source_type) as ContentEntry['sourceType'],
             sourceRef: row.SOURCE_REF as string ?? row.source_ref as string,
             ingestionDate: new Date((row.INGESTION_DATE ?? row.ingestion_date) as string),
+            publishedDate: publishedRaw ? new Date(publishedRaw as string) : null,
             approvedAt: approvedRaw ? new Date(approvedRaw as string) : null,
             sensitivity: (row.SENSITIVITY ?? row.sensitivity) as ContentEntry['sensitivity'],
             embedding: null,

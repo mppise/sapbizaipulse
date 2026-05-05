@@ -59,7 +59,10 @@ export async function updateNewsletter(id: string, input: UpdateNewsletterInput)
       const sets: string[] = [];
       const params: string[] = [];
       if (input.status) { sets.push('status = ?'); params.push(input.status); }
-      if (input.publishedAt) { sets.push('published_at = ?'); params.push(input.publishedAt.toISOString()); }
+      if (input.publishedAt !== undefined) {
+        sets.push('published_at = ?');
+        params.push(input.publishedAt ? input.publishedAt.toISOString() : null as any);
+      }
       if (input.objectStoreKey !== undefined) { sets.push('object_store_key = ?'); params.push(input.objectStoreKey); }
       if (!sets.length) return;
       params.push(id);

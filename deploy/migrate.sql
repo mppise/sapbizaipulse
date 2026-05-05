@@ -9,14 +9,16 @@ CREATE TABLE content_entries (
   source_type    NVARCHAR(16)    NOT NULL,
   source_ref     NVARCHAR(2048)  NOT NULL,
   ingestion_date TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  published_date TIMESTAMP,
   approved_at    TIMESTAMP,
   sensitivity    NVARCHAR(32)    NOT NULL DEFAULT 'Internal',
   embedding      REAL_VECTOR(1536),
   PRIMARY KEY (id)
 );
 
--- For existing deployments: add the approved_at column if the table already exists.
+-- For existing deployments: add columns if the table already exists.
 -- ALTER TABLE content_entries ADD (approved_at TIMESTAMP);
+-- ALTER TABLE content_entries ADD (published_date TIMESTAMP);
 
 -- Vector index: run manually once content_entries has embedding data.
 DROP INDEX content_entries_embedding_idx;

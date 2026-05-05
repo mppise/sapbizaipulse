@@ -187,7 +187,7 @@ export default function App() {
         </div>
         <div className="app-content-body">
           {tab === 'curator'     && <CuratorTab     onBusyChange={setBusy} setHeaderActions={setHeaderActions} />}
-          {tab === 'generator'   && <GeneratorTab   onBusyChange={setBusy} onNavigate={handleTabChange} />}
+          {tab === 'generator'   && <GeneratorTab   onBusyChange={setBusy} onNavigate={handleTabChange} setHeaderActions={setHeaderActions} />}
           {tab === 'newsletters' && <NewsletterTab  onBusyChange={setBusy} />}
         </div>
       </div>

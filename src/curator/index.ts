@@ -10,6 +10,7 @@ import {
   getContentEntry,
   listContentEntries,
   updateContentEntry,
+  unapproveEntry,
   deleteContentEntry,
 } from '../db';
 
@@ -82,7 +83,7 @@ router.post('/ingest/pdf/confirm', async (req, res) => {
   try {
     if (await contentEntryExistsBySourceRef(sourceRef)) return errorResponse(res, 409, 'CURATOR_DUPLICATE', `An entry with this source already exists: ${sourceRef}`, requestId);
     const truncated = fullBodyText.length > 500_000 ? fullBodyText.slice(0, 500_000) : fullBodyText;
-    const id = await insertContentEntry({ title, bodyText: truncated, sourceType: 'pdf', sourceRef, sensitivity: 'Internal' });
+    const id = await insertContentEntry({ title, bodyText: truncated, sourceType: 'pdf', sourceRef, sensitivity: 'Internal', publishedDate: new Date() });
     res.status(201).json({ data: { id, title, sensitivity: 'Internal' }, meta: { requestId } });
   } catch (err) {
     errorResponse(res, 500, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);
@@ -118,7 +119,7 @@ router.get('/entries/:id', async (req, res) => {
 });
 
 // [F-C01-APPROVE]
-router.patch('/entries/:id/approve', async (req, res) => {
+router.post('/entries/:id/approve', async (req, res) => {
   const requestId = reqId();
   try {
     const result = await approveEntry(req.params.id);
@@ -131,8 +132,24 @@ router.patch('/entries/:id/approve', async (req, res) => {
   }
 });
 
+// [F-C01-UNAPPROVE]
+router.post('/entries/:id/unapprove', async (req, res) => {
+  const requestId = reqId();
+  try {
+    const entry = await getContentEntry(req.params.id);
+    if (entry.sensitivity !== 'Newsletter-ready') {
+      return errorResponse(res, 409, 'CURATOR_NOT_APPROVED', 'Entry is not approved', requestId);
+    }
+    await unapproveEntry(req.params.id);
+    res.json({ data: { id: req.params.id, sensitivity: 'Internal' }, meta: { requestId } });
+  } catch (err: any) {
+    if (err.code === 'DS_NOT_FOUND') return errorResponse(res, 404, 'CURATOR_NOT_FOUND', err.message, requestId);
+    errorResponse(res, 500, 'CURATOR_FETCH_FAILED', (err as Error).message, requestId);
+  }
+});
+
 // [F-C01-UPDATE]
-router.patch('/entries/:id', async (req, res) => {
+router.post('/entries/:id', async (req, res) => {
   const requestId = reqId();
   const { title } = req.body;
   try {

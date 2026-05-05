@@ -5,26 +5,43 @@ import type { ContentEntry } from './CuratorTab';
 
 interface Props {
   entries: ContentEntry[];
-  onRefresh: () => void;
+  onUpdate: (id: string, patch: Partial<ContentEntry>) => void;
+  onRemove: (id: string) => void;
   onBusyChange: (busy: boolean) => void;
 }
 
-export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
+export default function EntryList({ entries, onUpdate, onRemove, onBusyChange }: Props) {
   const { showToast } = useToast();
   const [approving, setApproving] = useState<string | null>(null);
+  const [unapproving, setUnapproving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   async function handleApprove(id: string) {
     setApproving(id);
     onBusyChange(true);
     try {
-      await apiFetch(`/curator/entries/${id}/approve`, { method: 'PATCH' });
+      await apiFetch(`/curator/entries/${id}/approve`, { method: 'POST' });
+      onUpdate(id, { sensitivity: 'Newsletter-ready', approvedAt: new Date().toISOString() });
       showToast('Entry approved and embedding generated.', 'success');
-      onRefresh();
     } catch (e: any) {
       showToast(e.message);
     } finally {
       setApproving(null);
+      onBusyChange(false);
+    }
+  }
+
+  async function handleUnapprove(id: string) {
+    setUnapproving(id);
+    onBusyChange(true);
+    try {
+      await apiFetch(`/curator/entries/${id}/unapprove`, { method: 'POST' });
+      onUpdate(id, { sensitivity: 'Internal', approvedAt: null });
+      showToast('Entry unapproved — body text and embedding cleared.', 'success');
+    } catch (e: any) {
+      showToast(e.message);
+    } finally {
+      setUnapproving(null);
       onBusyChange(false);
     }
   }
@@ -34,8 +51,8 @@ export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
     setDeleting(id);
     try {
       await apiFetch(`/curator/entries/${id}`, { method: 'DELETE' });
+      onRemove(id);
       showToast('Entry deleted.', 'success');
-      onRefresh();
     } catch (e: any) {
       showToast(e.message);
     } finally {
@@ -48,77 +65,75 @@ export default function EntryList({ entries, onRefresh, onBusyChange }: Props) {
   }
 
   return (
-    <div className="table-responsive">
-      <table className="table table-sm table-hover align-middle">
-        <thead className="table-light">
-          <tr>
-            <th>Title</th>
-            <th>Source</th>
-            <th>Ingested</th>
-            <th>Approved</th>
-            <th>Sensitivity</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e) => (
-            <tr key={e.id}>
-              <td>
+    <div className="item-grid">
+      {entries.map((e) => {
+        const isReady = e.sensitivity === 'Newsletter-ready';
+        return (
+          <div key={e.id} className={`item-card ${isReady ? 'item-card--ready' : 'item-card--pending'}`}>
+            <div className="item-card-body">
+              <div className="item-card-chips">
+                <span className={`item-chip ${isReady ? 'item-chip--green' : 'item-chip--muted'}`}>
+                  {isReady ? 'Approved' : 'New'}
+                </span>
+              </div>
+              <div className="item-card-title">
                 {e.sourceType !== 'pdf' ? (
-                  <a
-                    href={e.sourceRef}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={e.title}
-                  >
-                    {e.title.length > 96 ? e.title.slice(0, 96) + '…' : e.title}
-                  </a>
+                  <a href={e.sourceRef} target="_blank" rel="noreferrer">{e.title}</a>
                 ) : (
-                  <span title={e.title}>
-                    {e.title.length > 96 ? e.title.slice(0, 96) + '…' : e.title}
+                  <span>{e.title}</span>
+                )}
+              </div>
+              <div className="item-card-dates">
+                {e.publishedDate && (
+                  <span className="item-date-meta">
+                    <i className="bi bi-calendar-event me-1" />
+                    {new Date(e.publishedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 )}
-              </td>
-              <td>
-                <span className="badge bg-secondary">{e.sourceType}</span>
-              </td>
-              <td className="text-nowrap small text-muted">
-                {new Date(e.ingestionDate).toLocaleDateString()}
-              </td>
-              <td className="text-nowrap small">
-                {e.approvedAt
-                  ? <span className="text-success">{new Date(e.approvedAt).toLocaleDateString()}</span>
-                  : <span className="text-muted">—</span>}
-              </td>
-              <td>
-                <span
-                  className={`badge ${e.sensitivity === 'Newsletter-ready' ? 'bg-success' : 'bg-warning text-dark'}`}
-                >
-                  {e.sensitivity}
-                </span>
-              </td>
-              <td className="text-end text-nowrap">
-                {e.sensitivity === 'Internal' && (
-                  <button
-                    className="btn btn-sm btn-outline-success me-1"
-                    onClick={() => handleApprove(e.id)}
-                    disabled={approving === e.id}
-                  >
-                    {approving === e.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-check-circle me-1" />Approve</>}
-                  </button>
+                {e.approvedAt && (
+                  <span className="item-date-meta item-date-meta--approved">
+                    <i className="bi bi-check2-circle me-1" />
+                    {new Date(e.approvedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
                 )}
+              </div>
+            </div>
+            <div className="item-card-actions">
+              {e.sensitivity === 'Internal' && (
                 <button
-                  className="btn btn-sm btn-outline-danger"
-                  onClick={() => handleDelete(e.id, e.title)}
-                  disabled={deleting === e.id}
+                  className="btn btn-sm btn-outline-success"
+                  onClick={() => handleApprove(e.id)}
+                  disabled={approving === e.id}
                 >
-                  {deleting === e.id ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-trash me-1" />Delete</>}
+                  {approving === e.id
+                    ? <span className="spinner-border spinner-border-sm" />
+                    : <><i className="bi bi-check-circle me-1" />Approve</>}
                 </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              )}
+              {e.sensitivity === 'Newsletter-ready' && (
+                <button
+                  className="btn btn-sm btn-outline-warning"
+                  onClick={() => handleUnapprove(e.id)}
+                  disabled={unapproving === e.id}
+                >
+                  {unapproving === e.id
+                    ? <span className="spinner-border spinner-border-sm" />
+                    : <><i className="bi bi-x-circle me-1" />Revert</>}
+                </button>
+              )}
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={() => handleDelete(e.id, e.title)}
+                disabled={deleting === e.id}
+              >
+                {deleting === e.id
+                  ? <span className="spinner-border spinner-border-sm" />
+                  : <i className="bi bi-trash" />}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

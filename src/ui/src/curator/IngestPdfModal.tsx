@@ -18,6 +18,7 @@ export default function IngestPdfModal({ onClose, onSaved }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [title, setTitle] = useState('');
+  const [hasFile, setHasFile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -71,14 +72,15 @@ export default function IngestPdfModal({ onClose, onSaved }: Props) {
           </div>
           <div className="modal-body">
             {!preview ? (
-              <div>
-                <div className="mb-3">
-                  <input ref={fileRef} type="file" className="form-control" accept=".pdf" />
-                  <div className="form-text">Max 20 MB · PDF files only</div>
-                </div>
-                <button className="btn btn-primary" onClick={handleUpload} disabled={loading}>
-                  {loading ? <><span className="spinner-border spinner-border-sm me-2" />Extracting…</> : 'Extract Text'}
-                </button>
+              <div className="mb-3">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="form-control"
+                  accept=".pdf"
+                  onChange={(e) => setHasFile(!!e.target.files?.[0])}
+                />
+                <div className="form-text">Max 20 MB · PDF files only</div>
               </div>
             ) : (
               <div>
@@ -95,7 +97,13 @@ export default function IngestPdfModal({ onClose, onSaved }: Props) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            {preview && (
+            {!preview ? (
+              hasFile && (
+                <button className="btn btn-primary" onClick={handleUpload} disabled={loading}>
+                  {loading ? <><span className="spinner-border spinner-border-sm me-2" />Extracting…</> : 'Extract Text'}
+                </button>
+              )
+            ) : (
               <button className="btn btn-primary" onClick={handleConfirm} disabled={saving || !title.trim()}>
                 {saving ? <><span className="spinner-border spinner-border-sm me-2" />Saving…</> : 'Save Entry'}
               </button>
