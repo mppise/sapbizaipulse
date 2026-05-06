@@ -266,14 +266,14 @@ export function renderMarkdown(markdownContent: string): string {
   .topic-chevron {
     grid-column: 1; grid-row: 1 / 3;
     align-self: center;
-    font-size: .72rem; color: #bbb;
+    font-size: .81rem; color: #bbb;
     transition: transform .2s;
   }
   details.topic-block[open] .topic-chevron { transform: rotate(90deg); }
 
   .topic-title-text {
     grid-column: 2; grid-row: 1;
-    font-size: 1rem; font-weight: 700; color: var(--sap-text); line-height: 1.3;
+    font-size: 1.125rem; font-weight: 700; color: var(--sap-text); line-height: 1.6;
   }
   .topic-teaser {
     grid-column: 2; grid-row: 2;
@@ -282,13 +282,13 @@ export function renderMarkdown(markdownContent: string): string {
   .topic-teaser blockquote {
     margin: 0; padding: .2rem .65rem;
     border-left: 2px solid #d8dde6; background: transparent;
-    font-size: .81rem; font-style: italic; color: #888;
+    font-size: .911rem; font-style: italic; color: #888;
     border-radius: 0;
   }
   .topic-teaser blockquote p { margin: 0; }
 
   /* ── Topic body + tabs ── */
-  .topic-body { padding: 0 1.4rem 1.1rem; }
+  .topic-body { padding: 0 1.4rem 1.8rem; }
 
   .tab-radio { display: none; }
 
@@ -300,14 +300,14 @@ export function renderMarkdown(markdownContent: string): string {
   }
   .tab-label {
     padding: .55rem 1rem;
-    font-size: .77rem; font-weight: 600; color: #999;
+    font-size: .866rem; font-weight: 600; color: #999;
     cursor: pointer;
     border-bottom: 3px solid transparent; margin-bottom: -2px;
     transition: color .15s, border-color .15s;
     white-space: nowrap; display: flex; align-items: center; gap: .3rem;
   }
   .tab-label:hover { color: var(--tab-color, var(--sap-blue)); }
-  .tab-icon { font-size: 1rem; line-height: 1; }
+  .tab-icon { font-size: 1.125rem; line-height: 1; }
 
   .tab-panel { display: none; }
 
@@ -323,17 +323,17 @@ export function renderMarkdown(markdownContent: string): string {
     border-bottom-color: var(--tab-color, var(--sap-blue));
   }
 
-  .tab-panel h4 { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1rem 0 .4rem; }
-  .tab-panel p  { font-size: .9rem; line-height: 1.75; margin-bottom: .6rem; }
-  .tab-panel ul, .tab-panel ol { font-size: .9rem; padding-left: 1.3rem; }
-  .tab-panel li { margin-bottom: .3rem; }
+  .tab-panel h4 { font-size: .9rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1rem 0 .4rem; }
+  .tab-panel p  { font-size: 1.013rem; line-height: 2.2; margin-bottom: 1.2rem; }
+  .tab-panel ul, .tab-panel ol { font-size: 1.013rem; padding-left: 1.3rem; }
+  .tab-panel li { margin-bottom: .7rem; }
   .tab-panel a  { color: var(--sap-blue); }
   .tab-panel blockquote {
     background: #f4f6fa; border-left: 3px solid #c5cdd9; border-radius: 4px;
-    padding: .45rem .85rem; font-size: .85rem; font-style: italic; color: #666;
-    margin: 0 0 .85rem;
+    padding: .9rem 1.4rem; font-size: .956rem; font-style: italic; color: #666;
+    margin: 0 0 1.4rem;
   }
-  .tab-panel blockquote p { margin: 0; font-size: .85rem; }
+  .tab-panel blockquote p { margin: 0; font-size: .956rem; }
 
   /* ── HR (separators between topics — hidden, cards provide spacing) ── */
   hr { display: none; }
