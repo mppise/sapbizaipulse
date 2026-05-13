@@ -29,16 +29,16 @@ A **component** is a distinct capability that either: (a) can be developed and d
 Do not skip or reorder.
 
 ### 1. Discover
-Deep-dive into the codebase and any available documentation. Populate the following artifacts based on what you find:
+Deep-dive into the codebase and any available documentation. Populate the following artifacts as laid out in the template, but be also prepared to iterate as you discover more based on what you find:
 
-- `./SPECS/artifacts/A_Project.md` — what is this system, what problem does it solve?
+- `./SPECS/artifacts/A_Project.md` — what is this system, what problem does it solve? 
 - `./SPECS/artifacts/B_Architecture.md` — technology stack, components, data flows, deployment model.
 - `./SPECS/artifacts/C_Assumptions.md`, `D_Decisions.md`, `E_Risks.md` — anything inferred, implicitly decided, or flagged as a risk in the existing system.
 
 This stage aligns with the Ideation and Planning phases of the lifecycle.
 
 ### 2. Design
-Translate the discovered information into component specifications. For each functional component identified, create the specification package under `./SPECS/components/<component_name>/` using the same structure as the Detailed Design phase (`A_Core_Spec.md`, `B_Interfaces.md`, and optionally `C_Specialized_Specs.md`).
+Translate the discovered information into component specifications. For each functional component identified, create the specification package under `./SPECS/components/<component_name>/` using the same structure as the Detailed Design phase would (`A_Core_Spec.md`, `B_Interfaces.md`, and optionally `C_Specialized_Specs.md`).
 
 This stage aligns with the Detailed Design phase of the lifecycle.
 
@@ -56,15 +56,17 @@ Present a summary of all artifacts produced and the Challenge recommendations to
 
 ## Output
 
-Generate a structured report at `./REV-ENG/{{ yyyy.mm.dd_hhmm }}.md` using the following sections:
+Generate a structured report at `./REV-ENG/{{ yyyy.mm.dd_hhmm }}.md` using the following sections. Note, SpecGantry will refer to this report in case the DevLead later decides to implement any of the recommendations — it serves as a record of the original state and the rationale behind suggested improvements:
 
-| Section | Contents |
-|---|---|
-| **Executive Summary** | What was discovered, how many components were identified, and the overall health verdict (Clean / Needs Attention / Critical Issues Found) |
-| **Artifacts Produced** | Table listing each file created or updated, its path, and a one-line description of what it contains |
-| **Component Map** | List of identified components, their purpose, and any interfaces between them |
-| **Challenge Findings** | One sub-section per dimension (Consistency · Completeness · Risk · Simplicity) — each finding as a bullet with severity (`SEV-1` / `SEV-2` / `SEV-3`) and a recommended action |
-| **Recommendations** | Prioritized list of improvements, numbered, each with a suggested next step |
+| Section | Contents | Severity | Suggested Action | Status |
+|---|---| |---|---|---|---|
+| **Executive Summary** | What was discovered, how many components were identified, and the overall health verdict (Clean / Needs Attention / Critical Issues Found) | `SEV-1` / `SEV-2` / `SEV-3` | High-level recommendation for next steps (e.g., "System is generally well-structured but has some security risks that should be addressed in the next iteration") | `Open` / `In Progress` / `Closed` |
+| **Artifacts Produced** | Table listing each file created or updated, its path, and a one-line description of what it contains | `SEV-1` / `SEV-2` / `SEV-3` | N/A | `Open` / `In Progress` / `Closed` |
+| **Component Map** | List of identified components, their purpose, and any interfaces between them | `SEV-1` / `SEV-2` / `SEV-3` | N/A | `Open` / `In Progress` / `Closed` |
+| **Challenge Findings** | One sub-section per dimension (Consistency · Completeness · Risk · Simplicity) — each finding as a bullet with severity (`SEV-1` / `SEV-2` / `SEV-3`) and a recommended action | `SEV-1` / `SEV-2` / `SEV-3` | N/A | `Open` / `In Progress` / `Closed` |
+| **Recommendations** | Prioritized list of improvements, numbered, each with a suggested next step | `SEV-1` / `SEV-2` / `SEV-3` | N/A | `Open` / `In Progress` / `Closed` |
+
+Also include a diagram or visual representation of the system architecture if applicable. This can be a simple block diagram showing components and their interactions, or a more detailed flowchart of data and control flows, depending on what best conveys the structure of the system.
 
 ## Scope
 

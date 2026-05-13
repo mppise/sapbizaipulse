@@ -335,6 +335,58 @@ export function renderMarkdown(markdownContent: string): string {
   }
   .tab-panel blockquote p { margin: 0; font-size: .956rem; }
 
+  /* ── Reader guide ── */
+  .nl-reader-guide {
+    background: #fffbea;
+    border: 1px solid #f0c040;
+    border-left: 4px solid #e8a000;
+    border-radius: 6px;
+    padding: .9rem 1.1rem 1rem;
+    margin-bottom: 1.4rem;
+  }
+  .nl-reader-guide h3 {
+    font-size: 1.05rem; font-weight: 700; color: var(--sap-text);
+    margin: 0 0 .5rem;
+  }
+  .nl-reader-guide p { margin: 0 0 .75rem; color: var(--sap-text); }
+  .nl-reader-guide .guide-tabs {
+    display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+    margin-top: .1rem;
+  }
+  .nl-reader-guide .guide-tab {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .82rem;
+    white-space: nowrap;
+  }
+  .nl-reader-guide .guide-tab .tab-name {
+    display: flex; align-items: center; gap: .3rem;
+    font-weight: 700; font-size: .75rem;
+    padding: .2rem .55rem;
+    border-radius: 4px;
+  }
+  .nl-reader-guide .guide-tab .tab-desc {
+    font-weight: 400; font-size: .8rem; color: #5a6475;
+  }
+  .nl-reader-guide .guide-tab.exec  .tab-name { background: #d6eaff; color: #004ea0; }
+  .nl-reader-guide .guide-tab.strat .tab-name { background: #d4f0e2; color: #0d5c32; }
+  .nl-reader-guide .guide-tab.deep  .tab-name { background: #e8d9f8; color: #45206e; }
+
+  /* ── Tabs — colored backgrounds ── */
+  /* Active tab label gets a tinted background swatch behind it */
+  .tab-radio:nth-of-type(1):checked ~ .tab-bar .tab-label:nth-of-type(1) { background: #d6eaff; border-radius: 6px 6px 0 0; padding-bottom: calc(.55rem + 3px); }
+  .tab-radio:nth-of-type(2):checked ~ .tab-bar .tab-label:nth-of-type(2) { background: #d4f0e2; border-radius: 6px 6px 0 0; padding-bottom: calc(.55rem + 3px); }
+  .tab-radio:nth-of-type(3):checked ~ .tab-bar .tab-label:nth-of-type(3) { background: #e8d9f8; border-radius: 6px 6px 0 0; padding-bottom: calc(.55rem + 3px); }
+
+  /* Inactive tab labels get a very subtle tint */
+  .tab-label:nth-of-type(1) { background: #eef5ff; border-radius: 6px 6px 0 0; }
+  .tab-label:nth-of-type(2) { background: #edf8f2; border-radius: 6px 6px 0 0; }
+  .tab-label:nth-of-type(3) { background: #f3ecfb; border-radius: 6px 6px 0 0; }
+
+  /* Active tab panel gets a light tint matching its tab color */
+  .tab-radio:nth-of-type(1):checked ~ .tab-content .tab-panel:nth-of-type(1) { background: #f5f9ff; border-radius: 0 6px 6px 6px; padding: 1rem 1.1rem; margin: 0 -1.4rem; }
+  .tab-radio:nth-of-type(2):checked ~ .tab-content .tab-panel:nth-of-type(2) { background: #f2fbf6; border-radius: 0 6px 6px 6px; padding: 1rem 1.1rem; margin: 0 -1.4rem; }
+  .tab-radio:nth-of-type(3):checked ~ .tab-content .tab-panel:nth-of-type(3) { background: #f9f4ff; border-radius: 0 6px 6px 6px; padding: 1rem 1.1rem; margin: 0 -1.4rem; }
+
   /* ── HR (separators between topics — hidden, cards provide spacing) ── */
   hr { display: none; }
 
@@ -352,7 +404,28 @@ export function renderMarkdown(markdownContent: string): string {
 </header>
 
 <div class="nl-layout">
-  <main class="nl-main">${topics}</main>
+  <main class="nl-main">
+    <div class="nl-reader-guide mb-4">
+      <h3>Reading Guide</h3>
+      <p>SAP Business AI Pulse is a focused, educational newsletter dedicated to SAP's AI domain. Its purpose is to keep you informed — not to advise or recommend — so you can build your own understanding of where SAP AI is heading and what it means for your role. Each edition covers a curated set of topics, and every topic is structured across three reading depths so you can engage at the level that matters most to you.</p>
+      <p>Click any topic to expand it, then use the tabs to choose your depth.</p>
+      <ol class="guide-tabs">
+        <li class="guide-tab exec">
+          <span class="tab-name"><i class="bi bi-binoculars"></i> The Big Picture</span>
+          <span>What happened and why it matters — written for executives and decision-makers</span>
+        </li>
+        <li class="guide-tab strat">
+          <span class="tab-name"><i class="bi bi-graph-up-arrow"></i> Strategy in Motion</span>
+          <span>Business &amp; competitive implications — written for business leaders</span>
+        </li>
+        <li class="guide-tab deep">
+          <span class="tab-name"><i class="bi bi-gear"></i> Under the Hood</span>
+          <span>Technical deep-dive for practitioners — written for technical experts</span>
+        </li>
+      </ol>
+    </div>
+    ${topics}
+  </main>
   ${sidebarHtml}
 </div>
 

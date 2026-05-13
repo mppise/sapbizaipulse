@@ -43,14 +43,12 @@ Write the **Strategy in Motion** section (200–300 words) for this topic.
 
 **Structure your response exactly as follows:**
 
-1. Two to three clear sentences prefixed with `> ` (markdown blockquote) — a factual summary of the core development, written like a news headline: specific, grounded, no hype.
-2. The section body, formatted for scannability:
-   - Use a `#### What SAP Has Delivered` sub-heading to open.
-   - Report concretely on what SAP has built, shipped, or demonstrated — be specific about capabilities, integrations, or milestones where the supporting content supports it.
-   - Use **bold** to call out specific product names, capabilities, or developments worth noting.
-   - Use a short bullet list (3–5 items) to break down distinct, factual dimensions of this development.
-   - Write in second person only to help the reader picture relevance — not to direct them.
-   - Close with: "To explore this further, see the sources linked in the Additional Reading section."
+1. A `#### What SAP Has Delivered` sub-heading to open the body.
+2. Report concretely on what SAP has built, shipped, or demonstrated — be specific about capabilities, integrations, or milestones where the supporting content supports it.
+3. Use **bold** to call out specific product names, capabilities, or developments worth noting.
+4. Use a short bullet list (3–5 items) to break down distinct, factual dimensions of this development.
+5. Write in second person only to help the reader picture relevance — not to direct them.
+6. Close with: "To explore this further, see the sources linked in the Additional Reading section."
 
 **Tone:** Clear, honest, genuinely interested. Report the story well — the facts will speak for themselves.
 

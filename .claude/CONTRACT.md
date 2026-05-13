@@ -76,6 +76,8 @@ A phase is **not complete** until ALL of the following are true:
 
 **Ideation Gate:**
 - `A_Project.md` is finalized and mutually agreed upon.
+- No open (`[ ]`) items remain in `./SPECS/artifacts/C_Assumptions.md`, `./SPECS/artifacts/D_Decisions.md`, or `./SPECS/artifacts/E_Risks.md`.
+- Open (`[ ]`) items must be actioned ONLY by DevAgent.
 
 **Planning Gate:**
 - `B_Architecture.md` is finalized and mutually agreed upon.

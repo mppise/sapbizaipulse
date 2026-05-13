@@ -4,8 +4,8 @@
   "description": "SAP BizAI Pulse — AI-domain newsletter curator and generator",
   "main": "dist/server.js",
   "scripts": {
-    "build": "npm run ui:build && tsc",
-    "start": "node dist/server.js",
+    "build": "npm run ui:build && tsc && cp -r src/ai/prompts dist/ai/prompts",
+    "start": "nodemon dist/server.js",
     "dev": "ts-node --project tsconfig.json src/server.ts",
     "ui:dev": "vite --config src/ui/vite.config.ts",
     "ui:build": "vite build --config src/ui/vite.config.ts"
