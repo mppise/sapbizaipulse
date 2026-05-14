@@ -97,7 +97,7 @@ export default function App() {
                 <div className="help-popover-arrow" />
                 <p className="help-popover-heading">How it works — 3 steps</p>
                 <ol className="help-popover-list">
-                  <li><strong>Curate</strong> — Fetch or upload SAP AI content and approve entries.</li>
+                  <li><strong>Curate</strong> — Fetch or upload SAP Business AI content and approve entries.</li>
                   <li><strong>Generate</strong> — Select topics and generate a newsletter draft with AI.</li>
                   <li><strong>Publish</strong> — Review, edit, and publish the draft as HTML.</li>
                 </ol>

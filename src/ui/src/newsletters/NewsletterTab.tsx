@@ -21,6 +21,7 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
   const [preview, setPreview] = useState<Newsletter | null>(null);
 
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
+  const [draftingEmail, setDraftingEmail] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,24 +53,33 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
   }
 
   async function handleDraftMessage(n: Newsletter) {
-    const topicCount = n.topicList?.length ?? 0;
-    const topicCountLabel = `${topicCount} topic${topicCount !== 1 ? 's' : ''}`;
     const link = `${window.location.origin}/published/${n.filename}.html`;
+    const dateMatch = n.filename.match(/(\d{4})-(\d{2})-(\d{2})/);
+    const linkLabel = dateMatch
+      ? `Newsletter ${new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+      : 'Read the Newsletter';
+    setDraftingEmail(n.id);
+    onBusyChange(true);
+    let summaryText: string;
+    try {
+      const result = await apiFetch<{ summary: string }>(`/newsletters/${n.id}/email-summary`, { method: 'POST' });
+      summaryText = result.summary;
+    } catch (e: any) {
+      showToast(`Failed to generate summary: ${e.message ?? 'unknown error'}`, 'warning');
+      setDraftingEmail(null);
+      onBusyChange(false);
+      return;
+    }
+    setDraftingEmail(null);
+    onBusyChange(false);
 
-    const topicsHtml = n.topicList && n.topicList.length > 0
-      ? `<ol style="margin:0 0 16px;padding-left:20px;">${n.topicList.map(t => `<li style="margin-bottom:4px;">${t}</li>`).join('')}</ol>`
-      : '<p style="color:#666;">Topics not available.</p>';
+    const paragraphs = summaryText.split(/\n\n+/).map(p => `  <p>${p.trim()}</p>`).join('\n');
 
     const html = `
 <div style="font-family:verdana;font-size:14px;color:#1d2d3e;line-height:1.6;max-width:600px;">
   <p>Hi,</p>
-  <p>Another update on SAP Business AI is here! I've put together a curated set of insights highlighting some of the latest developments and innovations in this space.</p>
-  <p><strong>Read it online here:</strong><br/>
-  <a href="${link}" style="color:#0070f3;">${link}</a></p>
-  <div style="border-top:1px solid #e8eaed;margin-top:24px;padding-top:12px;padding-bottom:12px;">
-    <p>This edition covers <strong>${topicCountLabel}</strong>:</p>
-  </div>
-  ${topicsHtml}
+${paragraphs}
+  <p>Read it here: <a href="${link}" style="color:#0070f3;font-weight:bold;">${linkLabel}</a></p>
 </div>`;
 
     try {
@@ -78,7 +88,7 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
       ]);
       showToast('Formatted email copied — paste it into your email composer.', 'success');
     } catch {
-      showToast('Clipboard write failed — please copy manually.', 'warning');
+      showToast('Clipboard write failed — try again.', 'warning');
     }
   }
 
@@ -149,8 +159,8 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
                           <a href={`/published/${n.filename}.html`} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-success" title="View">
                             <i className="bi bi-box-arrow-up-right" />
                           </a>
-                          <button className="btn btn-sm btn-outline-secondary" title="Copy email draft" onClick={() => handleDraftMessage(n)}>
-                            <i className="bi bi-envelope" />
+                          <button className="btn btn-sm btn-outline-secondary" title="Copy email draft" onClick={() => handleDraftMessage(n)} disabled={draftingEmail === n.id}>
+                            {draftingEmail === n.id ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-envelope" />}
                           </button>
                           <button className="btn btn-sm btn-outline-warning" title="Unpublish" onClick={() => handleUnpublish(n)} disabled={unpublishing === n.id}>
                             {unpublishing === n.id

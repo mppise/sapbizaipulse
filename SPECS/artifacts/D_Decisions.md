@@ -100,3 +100,4 @@ license: Apache-2.0 (see LICENSE in project root)
 | — | D-PRODUCT-SENSTAG added (supersedes D-PRODUCT-INTTAG); rejected decision moved to log | 2026-05-03 | SpecGantry |
 | D-PRODUCT-SUGGEST | Added — topic suggestion redesigned to use two-pass LLM clustering over HANA Newsletter-ready entries; persona-specific vector search per section | 2026-05-04 | SpecGantry |
 | — | D-DATA-FILESYS changed from rejected to deferred — SAP Object Store or Kyma PV under consideration | 2026-05-03 | DevAgent |
+| — | F-C03-EMAIL-SUMMARY added: AI-generated email teaser via `generate-email-summary` prompt; C03 now calls C04 for this; C04 caller table and prompt table updated; branding updated ("Generated using SAP Business AI Platform", "SAP Business AI" throughout) | 2026-05-14 | SpecGantry |

@@ -8,7 +8,7 @@ license: Apache-2.0 (see LICENSE in project root)
 # Project Status
 
 > **Overall health:** 🟢 On Track
-> **Last updated:** 2026-05-12 (rel_2026.05.12.2145)
+> **Last updated:** 2026-05-14 (rel_2026.05.14.1915)
 > **Active phase:** Deployment Readiness
 
 ---
@@ -33,8 +33,8 @@ license: Apache-2.0 (see LICENSE in project root)
 | :------------ | :--------: | :----------------: | :--------------: | :-------------: | :--------------: | :------------- | :-------- |
 | C01 Content Curator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; F-C01-UX-FLOW added 2026-05-04 |
 | C02 Newsletter Generator | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; F-C02-UX-AUTONAV + F-C02-UX-NEXTCTA added 2026-05-04 |
-| C03 Newsletter Lifecycle | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
-| C04 AI Service | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
+| C03 Newsletter Lifecycle | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; F-C03-EMAIL-SUMMARY added 2026-05-14 |
+| C04 AI Service | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete; caller table + prompt table updated 2026-05-14 |
 | C05 Data Store | ✅ | 2026-05-03 | 2026-05-03 | 2026-05-03 | 2026-05-03 | — | Complete |
 
 ---
@@ -73,7 +73,8 @@ license: Apache-2.0 (see LICENSE in project root)
 | v0.7.0 — rel_2026.05.05.1500 | ✅ Deployed | 2026-05-05 | 2026-05-05 | See deploy/rel_2026.05.05.1500/release_audit.md |
 | v0.7.1 — rel_2026.05.05.1206 | ✅ Deployed | 2026-05-05 | 2026-05-05 | See deploy/rel_2026.05.05.1206/release_audit.md |
 | v0.7.2 — rel_2026.05.05.1556 | ✅ Deployed | 2026-05-05 | 2026-05-05 | See deploy/rel_2026.05.05.1556/release_audit.md |
-| v0.8.0 — rel_2026.05.12.2145 | 🔄 Ready for deployment | 2026-05-12 | | See deploy/rel_2026.05.12.2145/release_audit.md |
+| v0.8.0 — rel_2026.05.12.2145 | ✅ Deployed | 2026-05-12 | 2026-05-12 | See deploy/rel_2026.05.12.2145/release_audit.md |
+| v0.9.0 — rel_2026.05.14.1915 | 🔄 Ready for deployment | 2026-05-14 | | See deploy/rel_2026.05.14.1915/release_audit.md |
 
 ---
 

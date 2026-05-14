@@ -37,9 +37,12 @@ app.use('/api/v1/generator', generatorRouter);
 // [F-C03-SERVEHTML] Unauthenticated public route for published newsletters
 app.get('/published/:filename', servePublishedHtml);
 
-// Serve React SPA static assets (production build)
+// Serve React SPA static assets (production build) — GET only, never intercept API calls
 const uiDist = path.join(__dirname, '..', 'dist', 'ui');
-app.use(express.static(uiDist));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/published/')) return next();
+  express.static(uiDist)(req, res, next);
+});
 app.get('*', (_req, res) => res.sendFile(path.join(uiDist, 'index.html')));
 
 // /health — unauthenticated

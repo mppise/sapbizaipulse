@@ -171,7 +171,28 @@ Convert draft to published HTML and update the newsletter record.
 
 ---
 
-### 3.6 `DELETE /api/v1/newsletters/:id`
+### 3.6 `POST /api/v1/newsletters/:id/email-summary`
+
+Generate an AI-written email teaser for a newsletter using its full Markdown content as context.
+
+**Response `200`:**
+```json
+{
+  "data": { "summary": "<3–4 sentence plain-text summary>" },
+  "meta": { "requestId": "<uuid>" }
+}
+```
+
+**Behaviour:**
+- Always reads from `drafts/<filename>.md` in Object Store — the draft markdown is preserved after publish and contains clean content for summarisation.
+- Passes the full Markdown to C04 `generateCompletion('generate-email-summary', { newsletter_content })` at temperature 0.5, max 256 tokens.
+- Returns the trimmed completion string as `summary`.
+
+**Error responses:** `404 LIFECYCLE_NOT_FOUND` · `502 LIFECYCLE_STORE_READ_FAILED` · `500 LIFECYCLE_ERROR`
+
+---
+
+### 3.7 `DELETE /api/v1/newsletters/:id`
 
 Delete a newsletter and its associated Object Store files.
 
@@ -181,7 +202,7 @@ Delete a newsletter and its associated Object Store files.
 
 ---
 
-### 3.7 `GET /published/:filename.html` (unauthenticated)
+### 3.8 `GET /published/:filename.html` (unauthenticated)
 
 Stream the published HTML file from Object Store to the browser.
 

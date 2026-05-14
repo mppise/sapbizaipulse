@@ -61,6 +61,7 @@ All prompts are stored as Markdown files under `./src/ai/prompts/`. Variable pla
 | `generate-leadership-execution.md` | C02 | `{{topic}}`, `{{supporting_content}}` |
 | `generate-technical-insight.md` | C02 | `{{topic}}`, `{{supporting_content}}` |
 | `guardrail-check.md` | C04 (F-C04-GUARDRAIL) | `{{generated_content}}` |
+| `generate-email-summary.md` | C03 (F-C03-EMAIL-SUMMARY) | `{{newsletter_content}}` |
 
 Prompt files are versioned in source control. Changing a prompt does not require a code change — only a file edit and redeploy.
 
@@ -76,6 +77,7 @@ Prompt files are versioned in source control. Changing a prompt does not require
 | C02 Newsletter Generator | Generate newsletter section (streaming) | `generateCompletionStream(promptName, vars)` |
 | C02 Newsletter Generator | Generate newsletter section (non-streaming) | `generateCompletion(promptName, vars)` |
 | C02 Newsletter Generator | Guardrail check on generated section | `checkGuardrail(content)` |
+| C03 Newsletter Lifecycle | Generate email teaser summary for a newsletter | `generateCompletion(promptName, vars)` |
 
 ### 5.2 Outbound (C04 calling external systems)
 

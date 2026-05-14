@@ -31,7 +31,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # --- Defaults ----------------------------------------------------------------
 
 ENV=""
-IMAGE_TAG="2026.05.12.2145"
+IMAGE_TAG="2026.05.14.1915"
 REGISTRY="${REGISTRY:-docker.io/mppise}"
 NAMESPACE="${NAMESPACE:-default}"
 DEPLOYMENT_NAME="sap-bizai-pulse"

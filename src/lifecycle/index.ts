@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { saveDraft } from './draftService';
 import { renderMarkdown } from './converter';
 import { putObject, getObjectAsString, streamObjectToResponse, deleteObject } from './objectStore';
+import { generateCompletion } from '../ai/completion';
 import { getNewsletter, listNewsletters, updateNewsletter, deleteNewsletter } from '../db';
 
 const router = Router();
@@ -113,6 +114,21 @@ router.post('/:id/unpublish', async (req, res) => {
   } catch (e: any) {
     if (e.code === 'DS_NOT_FOUND') return err(res, 404, 'LIFECYCLE_NOT_FOUND', e.message, requestId);
     if (e.code === 'LIFECYCLE_STORE_WRITE_FAILED') return err(res, 502, e.code, e.message, requestId);
+    err(res, 500, 'LIFECYCLE_ERROR', (e as Error).message, requestId);
+  }
+});
+
+// [F-C03-EMAIL-SUMMARY]
+router.post('/:id/email-summary', async (req, res) => {
+  const requestId = reqId();
+  try {
+    const nl = await getNewsletter(req.params.id);
+    const markdownContent = await getObjectAsString(`drafts/${nl.filename}.md`);
+    const result = await generateCompletion('generate-email-summary', { newsletter_content: markdownContent }, { temperature: 0.5, maxTokens: 512 });
+    res.json({ data: { summary: result.content.trim() }, meta: { requestId } });
+  } catch (e: any) {
+    if (e.code === 'DS_NOT_FOUND') return err(res, 404, 'LIFECYCLE_NOT_FOUND', e.message, requestId);
+    if (e.code === 'LIFECYCLE_STORE_READ_FAILED') return err(res, 502, e.code, e.message, requestId);
     err(res, 500, 'LIFECYCLE_ERROR', (e as Error).message, requestId);
   }
 });

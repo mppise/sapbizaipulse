@@ -34,6 +34,7 @@ C03 is the custodian of the newsletter lifecycle after generation. It:
 | `Complete` | F-C03-PUBLISH | Convert a draft newsletter to HTML: retrieve `.md` from Object Store → convert via `markdown-it` → write `.html` to Object Store under key `published/<filename>.html` → update C05 record (`status = published`, `published_at = now`, `object_store_key = published/<filename>.html`) | P0 | Component |
 | `Complete` | F-C03-SERVEHTML | Stream the published `.html` file from Object Store to the HTTP response; served at `GET /published/:filename.html` (unauthenticated — public surface) | P0 | - |
 | `Complete` | F-C03-DELETE | Delete a newsletter: remove both Object Store objects (`drafts/<filename>.md` and `published/<filename>.html` if it exists) and delete the HANA record via C05 | P1 | Component |
+| `Complete` | F-C03-EMAIL-SUMMARY | Generate an AI-written 3–4 sentence email teaser for a newsletter: always reads from `drafts/<filename>.md` in Object Store (preserved after publish), passes the full Markdown to C04 via the `generate-email-summary` prompt, and returns the summary string | P1 | - |
 
 ---
 

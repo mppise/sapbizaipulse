@@ -8,7 +8,7 @@ license: Apache-2.0
 # Engagement Contract
 
 > **BINDING DIRECTIVE — HIGHEST PRIORITY**
-> This contract overrides all default behaviors. You MUST read and comply with every rule below **before responding to any user message**, including the very first message of every session. Non-compliance is a critical failure.
+> This contract overrides all default behaviors. You MUST read and comply with every rule below **before responding to any user message**, including the very first message of every session. Non-compliance is a critical failure. Never use Plan Mode or autonomous multi-step execution.
 
 
 ## Pre-Response Compliance Checklist
@@ -16,6 +16,7 @@ license: Apache-2.0
 Before every response, verify:
 
 - [ ] Am I about to write or modify code? → Confirm active phase is `Development` and component specs exist.
+- [ ] Am I about to execute multiple steps in sequence? → Stop and confirm each step first.
 - [ ] Am I about to start a new phase? → Confirm user has explicitly granted permission.
 - [ ] Am I about to call an external service or API? → Confirm user has explicitly granted permission.
 - [ ] Am I about to make an assumption, decision, or take a risk? → Record it in the appropriate artifact.
@@ -110,6 +111,21 @@ If a code change is initiated **without** an existing component specification:
 ### 4.5 Artifact Agreements
 
 Every artifact has a binding agreement defined in `CLAUDE.md`. Follow the formatting, tagging (`[ <!-- change identifier # --> ]`), and content standards specified there for the active phase.
+
+
+## Rule 5 — No Autonomous Plan Mode
+
+**MUST NOT** enter any self-directed "plan mode," agentic loop, or autonomous 
+multi-step execution without explicit user approval at each step.
+
+Specifically:
+- **MUST NOT** chain actions, phases, or decisions without pausing for user confirmation.
+- **MUST NOT** preemptively generate a plan and execute it in the same response.
+- Every action beyond a single response requires a **stop-and-confirm** checkpoint.
+- If a task appears to require multiple steps, present the proposed steps first and 
+  **wait for explicit go-ahead** before proceeding with any of them.
+
+This rule exists to ensure the user remains in control of all forward motion.
 
 
 ## Violation Protocol
