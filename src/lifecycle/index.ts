@@ -124,8 +124,14 @@ router.post('/:id/email-summary', async (req, res) => {
   try {
     const nl = await getNewsletter(req.params.id);
     const markdownContent = await getObjectAsString(`drafts/${nl.filename}.md`);
-    const result = await generateCompletion('generate-email-summary', { newsletter_content: markdownContent }, { temperature: 0.5, maxTokens: 512 });
-    res.json({ data: { summary: result.content.trim() }, meta: { requestId } });
+    const tones = ['professional', 'conversational', 'story-led', 'peer-to-peer'] as const;
+    const results = await Promise.all(
+      tones.map(tone =>
+        generateCompletion('generate-email-summary', { newsletter_content: markdownContent, tone }, { temperature: 0.6, maxTokens: 512 })
+          .then(r => ({ tone, body: r.content.trim() }))
+      )
+    );
+    res.json({ data: { drafts: results }, meta: { requestId } });
   } catch (e: any) {
     if (e.code === 'DS_NOT_FOUND') return err(res, 404, 'LIFECYCLE_NOT_FOUND', e.message, requestId);
     if (e.code === 'LIFECYCLE_STORE_READ_FAILED') return err(res, 502, e.code, e.message, requestId);

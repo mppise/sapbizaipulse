@@ -35,7 +35,7 @@ C04 has no knowledge of content entries, newsletters, or any domain concept — 
 | `Complete` | F-C04-EMBED | Send a text embedding request to the text-embedding-ada-002 deployment (`AI_CORE_EMBED_DEPLOYMENT_ID`) and return the 1536-dimension vector | P0 | - |
 | `Complete` | F-C04-PROMPT | Load a prompt template from `./src/ai/prompts/<name>.md`, perform variable substitution (`{{variable}}`), and return the resolved prompt string | P0 | - |
 | `Complete` | F-C04-RETRY | Retry transient AI Core errors (5xx, timeout, 429) up to 3 times with exponential backoff; throw `AIServiceError` after exhausting retries | P0 | - |
-| `Complete` | F-C04-GUARDRAIL | Send a guardrail check prompt to the LLM to verify that generated content is within the SAP AI domain and uses educational (non-guidance) tone; return a structured result (`pass` / `fail` + flagged excerpt) | P0 | - |
+| `Retired` | F-C04-GUARDRAIL | ~~Send a guardrail check prompt to the LLM to verify that generated content is within the SAP AI domain and uses educational (non-guidance) tone; return a structured result (`pass` / `fail` + flagged excerpt)~~ — retired | P0 | - |
 
 ---
 
@@ -57,11 +57,11 @@ All prompts are stored as Markdown files under `./src/ai/prompts/`. Variable pla
 
 | File | Used by | Variables |
 | :--- | :------ | :-------- |
-| `generate-executive-summary.md` | C02 | `{{topic}}`, `{{supporting_content}}` |
-| `generate-leadership-execution.md` | C02 | `{{topic}}`, `{{supporting_content}}` |
-| `generate-technical-insight.md` | C02 | `{{topic}}`, `{{supporting_content}}` |
-| `guardrail-check.md` | C04 (F-C04-GUARDRAIL) | `{{generated_content}}` |
+| `generate-executive-summary.md` | C02 | `{{topic}}`, `{{content_plan}}`, `{{supporting_content}}`, `{{sources}}` |
+| `generate-leadership-execution.md` | C02 | `{{topic}}`, `{{content_plan}}`, `{{supporting_content}}`, `{{sources}}` |
+| `generate-technical-insight.md` | C02 | `{{topic}}`, `{{content_plan}}`, `{{supporting_content}}`, `{{sources}}` |
 | `generate-email-summary.md` | C03 (F-C03-EMAIL-SUMMARY) | `{{newsletter_content}}` |
+| ~~`guardrail-check.md`~~ | ~~C04 (F-C04-GUARDRAIL)~~ | ~~`{{generated_content}}`~~ — retired |
 
 Prompt files are versioned in source control. Changing a prompt does not require a code change — only a file edit and redeploy.
 
@@ -76,7 +76,6 @@ Prompt files are versioned in source control. Changing a prompt does not require
 | C01 Content Curator | Generate embedding for ingested entry | `generateEmbedding(text)` |
 | C02 Newsletter Generator | Generate newsletter section (streaming) | `generateCompletionStream(promptName, vars)` |
 | C02 Newsletter Generator | Generate newsletter section (non-streaming) | `generateCompletion(promptName, vars)` |
-| C02 Newsletter Generator | Guardrail check on generated section | `checkGuardrail(content)` |
 | C03 Newsletter Lifecycle | Generate email teaser summary for a newsletter | `generateCompletion(promptName, vars)` |
 
 ### 5.2 Outbound (C04 calling external systems)
@@ -126,7 +125,7 @@ All public functions wrap AI Core errors in an `AIServiceError`:
 | `AI_COMPLETION_FAILED` | Completion request failed after retries exhausted |
 | `AI_EMBEDDING_FAILED` | Embedding request failed after retries exhausted |
 | `AI_PROMPT_NOT_FOUND` | Prompt file not found at expected path |
-| `AI_GUARDRAIL_FAILED` | Guardrail check request failed |
+| ~~`AI_GUARDRAIL_FAILED`~~ | ~~Guardrail check request failed~~ — retired |
 
 ---
 
@@ -152,3 +151,4 @@ No defaults are provided for credential values — startup fails fast if any are
 | ID | Description | Date | Author |
 | :- | :---------- | :--: | :----- |
 | — | Initial specification created | 2026-05-03 | SpecGantry |
+| CHG-GUARDRAIL-RETIRE | F-C04-GUARDRAIL retired — checkGuardrail() function, guardrail-check.md prompt, and AI_GUARDRAIL_FAILED error code removed from spec; prompt variables table updated | 2026-05-15 | SpecGantry |

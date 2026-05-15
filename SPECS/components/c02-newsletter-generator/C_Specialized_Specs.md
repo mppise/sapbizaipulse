@@ -14,15 +14,12 @@ license: Apache-2.0 (see LICENSE in project root)
 
 | Step | C04 function | Input | Notes |
 | :--- | :----------- | :---- | :---- |
-| Pass 1 topic extraction (per entry) | `generateCompletion('extract-topics', { body_text })` | Entry body text | Non-streaming; returns JSON array |
-| Pass 2 topic consolidation | `generateCompletion('consolidate-topics', { candidate_topics })` | JSON of all candidates | Non-streaming; returns JSON array |
-| Persona embedding — executive | `generateEmbedding(personaQuery)` | `"{title} business impact strategic value executive"` | Per-topic |
-| Persona embedding — leadership | `generateEmbedding(personaQuery)` | `"{title} implementation adoption roadmap leadership"` | Per-topic |
-| Persona embedding — technical | `generateEmbedding(personaQuery)` | `"{title} technical architecture API integration developer"` | Per-topic |
-| Executive Summary | `generateCompletionStream('generate-executive-summary', { topic, supporting_content })` | Resolved prompt | Streamed |
-| Leadership & Execution | `generateCompletionStream('generate-leadership-execution', { topic, supporting_content })` | Resolved prompt | Streamed |
-| Technical Insight | `generateCompletionStream('generate-technical-insight', { topic, supporting_content })` | Resolved prompt | Streamed |
-| Guardrail | `checkGuardrail(allSectionsText)` | Concatenated sections | Non-streaming; result embedded in draft |
+| Pass 1 insight extraction (per entry) | `generateCompletion('extract-topics', { body_text })` | Entry body text | Non-streaming; returns JSON array of insight phrase strings |
+| Pass 2 topic consolidation | `generateCompletion('consolidate-topics', { candidate_phrases })` | JSON of all phrases + entryIds (no body_text) | Non-streaming; returns JSON array with topic names and plan steps |
+| Plan step embedding (per step, per topic) | `generateEmbedding(planStep)` | One plan step string | Per-step; used to retrieve relevant content chunks |
+| Executive Summary | `generateCompletionStream('generate-executive-summary', { topic, supporting_content, sources, content_plan })` | Resolved prompt | Streamed |
+| Leadership & Execution | `generateCompletionStream('generate-leadership-execution', { topic, supporting_content, sources, content_plan })` | Resolved prompt | Streamed |
+| Technical Insight | `generateCompletionStream('generate-technical-insight', { topic, supporting_content, sources, content_plan })` | Resolved prompt | Streamed |
 
 ### 1.2 Section Generation Order
 
@@ -34,25 +31,33 @@ Topics themselves are also processed **sequentially** — one topic fully comple
 
 ### 1.3 Supporting Content Assembly
 
-For each topic section, supporting content is assembled from the **persona-specific vector search** results for that section:
+For each topic, supporting content is assembled using **plan-step-driven vector search**:
+
+For every plan step string in `contentPlan` (2–4 steps per topic):
+1. `C04.generateEmbedding(planStep)` → embedding vector
+2. `C05.vectorSearch(vec, topK=5, timeframeFrom)` → up to 5 matching entries
+
+All results are pooled across every plan step, deduplicated by `entry.id` (first occurrence wins), and truncated to 2,000 chars each. The pooled set is used as `supporting_content` for **all three section prompts** — there is no longer a separate per-section vector search.
+
+The clustered `entryIds` from Pass 2 are not re-fetched at generation time; they were used to ground Pass 2's content plan and are now superseded by the plan-step vector retrieval which pulls the same (and additional relevant) content from the timeframe pool.
+
+Total supporting content is capped to avoid token overflow (see NFR-C02-CHUNKSIZE).
+
+### 1.4 Content Plan Injection
+
+Each topic produced by Pass 2 carries a `contentPlan: string[]` — 2–4 bullet strings describing specifically what should be covered. This plan is injected into all three section prompts as the `{{content_plan}}` variable, formatted as a numbered list:
 
 ```
-[vector search result 1 (up to 2,000 chars)]
----
-[vector search result 2 (up to 2,000 chars)]
-...up to 5 vector results
+1. <bullet 1>
+2. <bullet 2>
+...
 ```
 
-If `vectorSearch()` returns 0 results for a persona query, `{{supporting_content}}` is set to `"No supporting content available."` — the LLM generates from the topic title + persona context alone.
+The section prompts use `{{content_plan}}` as a prioritisation guide: the LLM is instructed to address each plan point where the supporting content supports it, without fabricating content that is not present in the supporting material. If a topic has no `contentPlan` (e.g. a manually added topic), `{{content_plan}}` resolves to an empty string — the prompt's Content Plan section renders blank and the LLM proceeds on supporting content alone.
 
-### 1.4 Guardrail Integration
+### 1.5 ~~Guardrail Integration~~ — Retired
 
-- Guardrail check runs **after** all three sections are generated for a topic.
-- Input to `checkGuardrail()`: `executiveSummary + '\n\n' + leadershipExecution + '\n\n' + technicalInsight`.
-- A guardrail `FAIL` does **not** exclude the topic from the draft — the author is responsible for reviewing and editing flagged content before publishing.
-- The guardrail result is surfaced in two places:
-  1. SSE `guardrail_result` event (real-time UI feedback).
-  2. HTML comment in the assembled Markdown: `<!-- GUARDRAIL: FAIL | <flaggedExcerpt> -->`.
+F-C02-GUARDRAIL and F-C04-GUARDRAIL have been retired. The guardrail check (`checkGuardrail()`, `guardrail-check.md` prompt, `guardrail_result` SSE event, and `<!-- GUARDRAIL -->` Markdown comments) is no longer part of the generation pipeline.
 
 ---
 
@@ -118,48 +123,55 @@ If no newsletters exist yet, `timeframeFrom = today − 14 days`.
 
 Query: `SELECT * FROM content_entries WHERE sensitivity = 'Newsletter-ready' AND ingestion_date >= timeframeFrom`.
 
-### 5.2 Pass 1 — Per-Entry Topic Extraction
+### 5.2 Pass 1 — Per-Entry Insight Extraction
 
 For each entry in the result set, call `C04.generateCompletion('extract-topics', { body_text: entry.bodyText })`.
 
-- Each call returns a JSON array of 1–3 candidate topic strings extracted from that entry.
-- Associate each candidate topic with its source `entry.id`.
+- Each call returns a JSON array of 2–5 full-sentence **insight phrases** extracted from that entry. Each phrase must be specific, self-contained, and precise enough to serve as a vector search query at generation time (e.g. `"SAP AI Core's new embedding models reduce retrieval latency by 40% for enterprise RAG workloads"`).
+- Short topic-name strings are explicitly rejected by the prompt — phrases must be sentence-length.
+- Associate each phrase with its source `entry.id`. **Do not carry `body_text` forward** — it is not needed by Pass 2 and must not be included in the candidate payload (token safety).
 - If an entry's LLM call fails, skip it and continue.
-- Collect all `{ topic: string, entryId: string }` pairs into a flat list.
+- Collect all `{ phrase: string, entryId: string }` pairs into a flat list.
 
 **Prompt:** `src/ai/prompts/extract-topics.md`
 - Input variable: `{{body_text}}`
-- Expected output: a JSON array of short topic strings, e.g. `["SAP AI Core embedding upgrades", "HANA vector index tuning"]`
+- Expected output: a JSON array of full-sentence insight phrase strings, e.g. `["SAP AI Core's new embedding models cut retrieval latency by 40%", "HANA vector index auto-tuning eliminates manual dimensionality configuration"]`
 
 ### 5.3 Pass 2 — Topic Consolidation
 
-Feed the full flat list of candidate topics to `C04.generateCompletion('consolidate-topics', { candidate_topics: JSON.stringify(candidateList) })`.
+### 5.3 Pass 2 — Topic Consolidation
 
-- The LLM merges near-duplicates, eliminates redundancy, and returns a refined list of final topic objects.
-- Each final topic maps back to one or more `entryIds`.
-- Expected output: a JSON array of `{ title: string, entryIds: string[] }` objects.
+The flat `{ phrase: string, entryId: string }[]` candidate list from Pass 1 is passed directly to `C04.generateCompletion('consolidate-topics', { candidate_phrases: JSON.stringify(candidates) })`. **No `body_text` is included** — the phrases are sufficiently specific for the LLM to make genuine grouping and quality decisions without the raw entry text.
+
+- The LLM groups phrases that share the same underlying business capability or technology theme, merges overlapping topics, and filters out weak or redundant content.
+- It eliminates redundancy and performs explicit **overlap elimination** — pairs of surviving topics whose phrase pools overlap significantly are merged into the stronger one.
+- The number of returned topics is **not fixed**. The prompt instructs the model to return as many topics as are genuinely distinct and well-supported — no padding, no forced cuts. Typically 1–7 topics depending on available content.
+- Each final topic maps back to one or more `entryIds` and includes a `contentPlan`: **3–5 full-sentence plan step strings**. Each step must be specific enough to serve as a standalone vector search query at generation time (e.g. `"How SAP AI Core's auto-scaling reduces cold-start latency for burst inference workloads"`). These steps drive both the generation pipeline (as vector search queries and prompt context) and the UI display (shown to the author as the topic plan).
+- Expected output: a JSON array of `{ title: string, entryIds: string[], contentPlan: string[] }` objects.
 
 **Prompt:** `src/ai/prompts/consolidate-topics.md`
-- Input variable: `{{candidate_topics}}` — JSON array of `{ topic: string, entryId: string }` objects
-- Expected output: JSON array of `{ title: string, entryIds: string[] }`
+- Input variable: `{{candidate_phrases}}` — JSON array of `{ phrase: string, entryId: string }` objects
+- Expected output: JSON array of `{ title: string, entryIds: string[], contentPlan: string[] }`
 
 ### 5.4 Deduplication
 
-After Pass 2, deduplicate the final topic list by normalised title (lowercase, whitespace-collapsed) to guard against any LLM non-compliance. The final list is returned to the UI and stored in the generate request.
+After Pass 2, deduplicate the final topic list by normalised title (lowercase, whitespace-collapsed) to guard against any LLM non-compliance. The final list (with `contentPlan` attached) is returned to the UI and stored in the generate request. The UI renders the `contentPlan` plan steps beneath each topic title in the `TopicSelector` to help the author make informed include/exclude decisions.
 
 ---
 
-## 6. Persona-Specific Vector Search
+## 6. Plan-Driven Vector Search
 
-Each of the three newsletter sections uses a **persona-specific query string** for its vector search, rather than the bare topic title. This ensures each section's supporting content is tuned to its audience.
+Instead of three separate persona-specific searches per section, generation uses the topic's `contentPlan` steps as vector search queries. This grounds retrieval in the actual planned content rather than a generic persona context string.
 
-| Section | Persona query template |
-| :------ | :--------------------- |
-| `executive-summary` | `"{topicTitle} business impact strategic value executive"` |
-| `leadership-execution` | `"{topicTitle} implementation adoption roadmap leadership"` |
-| `technical-insight` | `"{topicTitle} technical architecture API integration developer"` |
+**For each plan step in `topic.contentPlan`:**
+1. `C04.generateEmbedding(planStep)` → embedding vector
+2. `C05.vectorSearch(vec, topK=5, timeframeFrom)` → up to 5 matching entries
 
-Each persona query is embedded independently (`C04.generateEmbedding(personaQuery)`), then `C05.vectorSearch(vec, topK=5)` is called. The three searches run **sequentially** (not in parallel) to avoid saturating SAP AI Core.
+Results are pooled across all steps, deduplicated by `entry.id` (first occurrence wins), and formatted with `formatChunks()` (see §7). The same pooled `supporting_content` string is injected into all three section prompts for the topic.
+
+`timeframeFrom` is returned by `GET /topics/suggest` in the `timeframeFrom` field and must be included by the client in the `POST /generate` request body as `timeframeFrom: string (ISO 8601)`.
+
+The plan steps run **sequentially** (not in parallel) to avoid saturating SAP AI Core.
 
 Supporting content per section is formatted using `formatChunks()` (see §7).
 
@@ -238,3 +250,6 @@ function formatChunks(chunks: VectorSearchResult[]): string {
 | CHG-001 | Redesigned F-C02-SUGGEST: replaced Playwright scraping with two-pass LLM clustering over Newsletter-ready HANA entries; added persona-specific vector search per section | 2026-05-04 | SpecGantry |
 | F-C02-UX-AUTONAV/NEXTCTA | Added §6 UX Detail for auto-navigation and Next CTA | 2026-05-04 | SpecGantry |
 | F-C02-UX-REFRESH | Added §6.4 Refresh button spec for Newsletters tab | 2026-05-05 | SpecGantry |
+| CHG-TOPIC-PLAN | §1.1/§1.3/§1.4/§5.3/§5.4 updated: removed 5-topic hard cap; added overlap-elimination step; added contentPlan to consolidate-topics output schema; added §1.4 Content Plan Injection — contentPlan passed as content_plan to all three section prompts; UI renders contentPlan bullets in TopicSelector | 2026-05-15 | SpecGantry |
+| CHG-VECSEARCH-SCOPE | §6 updated: vector search during generation scoped to timeframeFrom (same window as Pass 1); timeframeFrom passed from client in POST /generate body | 2026-05-15 | SpecGantry |
+| CHG-PHRASE-PIPELINE | §1.1/§1.3/§5.2/§5.3/§5.4/§6 redesigned: Pass 1 now extracts full-sentence insight phrases (not topic name strings); Pass 2 receives {phrase, entryId}[] only (no body_text — token safety); contentPlan now contains 3-5 full-sentence plan steps suitable as vector search queries; generation uses plan-step-driven vector search (one embed+search per step, pooled across all steps) replacing persona-suffix searches; all three sections use same pooled supporting_content | 2026-05-15 | SpecGantry |

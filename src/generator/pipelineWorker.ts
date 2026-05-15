@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { generateEmbedding, generateCompletionStream } from '../ai';
-import { vectorSearch, getContentEntry } from '../db';
+import { vectorSearch } from '../db';
 import { sseEvent } from './sseEmitter';
 import type { VectorSearchResult } from '../db/types';
 
@@ -18,17 +18,11 @@ const SECTION_PROMPTS: Record<SectionName, string> = {
   'technical-insight': 'generate-technical-insight',
 };
 
-// Persona-specific query suffixes per section (C02 C_Specialized_Specs §6)
-const PERSONA_SUFFIX: Record<SectionName, string> = {
-  'executive-summary': 'business impact strategic value executive',
-  'leadership-execution': 'implementation adoption roadmap leadership',
-  'technical-insight': 'technical architecture API integration developer',
-};
-
 export interface ClusteredTopic {
   type: 'clustered';
   title: string;
   entryIds: string[];
+  contentPlan?: string[];
 }
 
 export type TopicInput = ClusteredTopic;
@@ -39,12 +33,13 @@ export interface GeneratedTopic {
   sources: { title: string; url: string }[];
 }
 
-// [F-C02-VECSEARCH, F-C02-GENERATE] Per-topic generation pipeline with persona-specific vector search
+// [F-C02-VECSEARCH, F-C02-GENERATE] Per-topic generation pipeline with plan-step-driven vector search
 export async function runTopicPipeline(
   topic: TopicInput,
   topicIndex: number,
   totalTopics: number,
-  res: Response
+  res: Response,
+  timeframeFrom?: Date
 ): Promise<GeneratedTopic | null> {
   sseEvent(res, 'topic_start', { topicTitle: topic.title, topicIndex, totalTopics });
 
@@ -53,42 +48,43 @@ export async function runTopicPipeline(
     const seenUrls = new Set<string>();
     const sources: { title: string; url: string }[] = [];
 
-    // Seed sources from every entry that was clustered into this topic —
-    // these are the direct source pages and must all appear in Additional Reading.
-    for (const entryId of topic.entryIds) {
-      try {
-        const entry = await getContentEntry(entryId);
-        if (entry.sourceRef && !seenUrls.has(entry.sourceRef)) {
-          seenUrls.add(entry.sourceRef);
-          sources.push({ title: entry.title, url: entry.sourceRef });
+    // Build pooled supporting content from plan-step vector searches.
+    // Each plan step is embedded and used as a retrieval query; results are pooled and deduplicated.
+    const planSteps = topic.contentPlan && topic.contentPlan.length > 0
+      ? topic.contentPlan
+      : [topic.title];
+
+    const seenEntryIds = new Set<string>();
+    const pooledChunks: VectorSearchResult[] = [];
+
+    for (const step of planSteps) {
+      const vec = await generateEmbedding(step);
+      const results = await vectorSearch(vec, 5, timeframeFrom);
+      for (const r of results) {
+        if (!seenEntryIds.has(r.entry.id)) {
+          seenEntryIds.add(r.entry.id);
+          pooledChunks.push(r);
+          if (r.entry.sourceRef && !seenUrls.has(r.entry.sourceRef)) {
+            seenUrls.add(r.entry.sourceRef);
+            sources.push({ title: r.entry.title, url: r.entry.sourceRef });
+          }
         }
-      } catch {
-        // entry may have been deleted — skip silently
       }
     }
 
+    const supportingContent = formatChunks(pooledChunks);
+    const sourcesList = formatSourcesList(sources);
+    const contentPlan = topic.contentPlan && topic.contentPlan.length > 0
+      ? topic.contentPlan.map((s, i) => `${i + 1}. ${s}`).join('\n')
+      : '';
+
     for (const section of Object.keys(SECTION_PROMPTS) as SectionName[]) {
-      // Build persona-specific query and retrieve targeted supporting content
-      const personaQuery = `${topic.title} ${PERSONA_SUFFIX[section]}`;
-      const queryVec = await generateEmbedding(personaQuery);
-      const chunks = await vectorSearch(queryVec, 5);
-
-      // Accumulate unique sources across all persona searches
-      for (const c of chunks) {
-        if (c.entry.sourceRef && !seenUrls.has(c.entry.sourceRef)) {
-          seenUrls.add(c.entry.sourceRef);
-          sources.push({ title: c.entry.title, url: c.entry.sourceRef });
-        }
-      }
-
-      const supportingContent = formatChunks(chunks);
-      const sourcesList = formatSourcesList(sources);
-
       let fullText = '';
       const stream = generateCompletionStream(SECTION_PROMPTS[section], {
         topic: topic.title,
         supporting_content: supportingContent,
         sources: sourcesList,
+        content_plan: contentPlan,
       });
       for await (const chunk of stream) {
         fullText += chunk;
@@ -107,7 +103,6 @@ export async function runTopicPipeline(
   }
 }
 
-// [F-C02-VECSEARCH] Format persona vector search results for prompt injection
 function formatChunks(chunks: VectorSearchResult[]): string {
   if (!chunks.length) return 'No supporting content available.';
   return chunks

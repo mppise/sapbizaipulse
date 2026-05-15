@@ -84,6 +84,15 @@ The `guardrail-check.md` prompt must:
 - If a placeholder exists in the template but is not present in `variables`, it is left as-is and a `warn` log entry is emitted — no error thrown.
 - Variable values are not HTML-escaped by C04; callers are responsible for sanitising inputs before passing to prompts.
 
+### 4.1 Section Generation Prompt Variables
+
+| Variable | Supplied by | Notes |
+| :------- | :---------- | :---- |
+| `{{topic}}` | `pipelineWorker.ts` | Topic title string |
+| `{{content_plan}}` | `pipelineWorker.ts` | Numbered list of `contentPlan` bullets from Pass 2; empty string if no plan available |
+| `{{supporting_content}}` | `pipelineWorker.ts` | Formatted persona vector search results (up to 5 × 2,000 chars) |
+| `{{sources}}` | `pipelineWorker.ts` | Numbered list of source titles and URLs |
+
 ---
 
 ## Change History
@@ -91,3 +100,4 @@ The `guardrail-check.md` prompt must:
 | ID | Description | Date | Author |
 | :- | :---------- | :--: | :----- |
 | — | Initial specification created | 2026-05-03 | SpecGantry |
+| CHG-TOPIC-PLAN | §4 updated: added §4.1 section generation prompt variables table documenting content_plan injection | 2026-05-15 | SpecGantry |

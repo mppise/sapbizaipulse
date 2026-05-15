@@ -4,19 +4,22 @@ import { DataStoreError } from './errors';
 import type { VectorSearchResult, ContentEntry } from './types';
 
 // [F-C05-VEC-SEARCH]
-export async function vectorSearch(queryEmbedding: number[], topK: number): Promise<VectorSearchResult[]> {
+export async function vectorSearch(queryEmbedding: number[], topK: number, fromDate?: Date): Promise<VectorSearchResult[]> {
   return withRetry(async () => {
     const conn = getConnection();
     try {
       const vec = `[${queryEmbedding.join(',')}]`;
+      const dateFilter = fromDate ? `AND approved_at > ?` : '';
+      const params = fromDate ? [topK, vec, fromDate.toISOString()] as [number, string, string] : [topK, vec] as [number, string];
       const rows = await execQuery<Record<string, unknown>>(conn,
         `SELECT TOP ? id, title, body_text, source_type, source_ref, ingestion_date, approved_at, sensitivity,
                 COSINE_SIMILARITY(embedding, TO_REAL_VECTOR(?)) AS score
          FROM content_entries
          WHERE sensitivity = 'Newsletter-ready'
            AND embedding IS NOT NULL
+           ${dateFilter}
          ORDER BY score DESC`,
-        [topK, vec]
+        params
       );
       return rows.map((row) => {
         const approvedRaw = row.APPROVED_AT ?? row.approved_at;

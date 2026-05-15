@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../api';
 import { useToast } from '../components/ToastContainer';
 import PreviewModal from './PreviewModal';
+import EmailDraftModal from './EmailDraftModal';
 
 interface Newsletter {
   id: string;
@@ -10,6 +11,17 @@ interface Newsletter {
   createdAt: string;
   publishedAt?: string;
   topicList?: string[];
+}
+
+interface EmailDraft {
+  tone: 'professional' | 'conversational' | 'story-led' | 'peer-to-peer';
+  body: string;
+}
+
+interface EmailDraftState {
+  drafts: EmailDraft[];
+  newsletterLink: string;
+  linkLabel: string;
 }
 
 export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: boolean) => void }) {
@@ -22,6 +34,7 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
 
   const [unpublishing, setUnpublishing] = useState<string | null>(null);
   const [draftingEmail, setDraftingEmail] = useState<string | null>(null);
+  const [emailDraftState, setEmailDraftState] = useState<EmailDraftState | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,35 +73,14 @@ export default function NewsletterTab({ onBusyChange }: { onBusyChange: (busy: b
       : 'Read the Newsletter';
     setDraftingEmail(n.id);
     onBusyChange(true);
-    let summaryText: string;
     try {
-      const result = await apiFetch<{ summary: string }>(`/newsletters/${n.id}/email-summary`, { method: 'POST' });
-      summaryText = result.summary;
+      const result = await apiFetch<{ drafts: EmailDraft[] }>(`/newsletters/${n.id}/email-summary`, { method: 'POST' });
+      setEmailDraftState({ drafts: result.drafts, newsletterLink: link, linkLabel });
     } catch (e: any) {
-      showToast(`Failed to generate summary: ${e.message ?? 'unknown error'}`, 'warning');
+      showToast(`Failed to generate email drafts: ${e.message ?? 'unknown error'}`, 'warning');
+    } finally {
       setDraftingEmail(null);
       onBusyChange(false);
-      return;
-    }
-    setDraftingEmail(null);
-    onBusyChange(false);
-
-    const paragraphs = summaryText.split(/\n\n+/).map(p => `  <p>${p.trim()}</p>`).join('\n');
-
-    const html = `
-<div style="font-family:verdana;font-size:14px;color:#1d2d3e;line-height:1.6;max-width:600px;">
-  <p>Hi,</p>
-${paragraphs}
-  <p>Read it here: <a href="${link}" style="color:#0070f3;font-weight:bold;">${linkLabel}</a></p>
-</div>`;
-
-    try {
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) }),
-      ]);
-      showToast('Formatted email copied — paste it into your email composer.', 'success');
-    } catch {
-      showToast('Clipboard write failed — try again.', 'warning');
     }
   }
 
@@ -201,6 +193,15 @@ ${paragraphs}
           newsletterId={preview.id}
           filename={preview.filename}
           onClose={() => setPreview(null)}
+        />
+      )}
+
+      {emailDraftState && (
+        <EmailDraftModal
+          drafts={emailDraftState.drafts}
+          newsletterLink={emailDraftState.newsletterLink}
+          linkLabel={emailDraftState.linkLabel}
+          onClose={() => setEmailDraftState(null)}
         />
       )}
     </div>

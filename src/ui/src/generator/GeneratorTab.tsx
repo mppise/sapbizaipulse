@@ -36,7 +36,7 @@ export default function GeneratorTab({ onBusyChange, onNavigate, setHeaderAction
       const result = await apiFetch<SuggestResult>('/generator/topics/suggest');
       const clustered = Array.isArray(result.topics) ? result.topics : [];
       setTopics(clustered);
-      setSelected(clustered.map((t) => ({ type: 'clustered', title: t.title, entryIds: t.entryIds })));
+      setSelected(clustered.map((t) => ({ type: 'clustered', title: t.title, entryIds: t.entryIds, contentPlan: t.contentPlan })));
       setSuggestMeta({
         entryCount: result.entryCount,
         from: result.timeframeFrom,
@@ -94,7 +94,7 @@ export default function GeneratorTab({ onBusyChange, onNavigate, setHeaderAction
       const res = await fetch('/api/v1/generator/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-        body: JSON.stringify({ topics: selected }),
+        body: JSON.stringify({ topics: selected, timeframeFrom: suggestMeta?.from }),
       });
 
       if (!res.ok || !res.body) {
@@ -193,6 +193,10 @@ export default function GeneratorTab({ onBusyChange, onNavigate, setHeaderAction
           topics={topics}
           selected={selected}
           onChange={setSelected}
+          onReorder={(reordered) => {
+            setTopics(reordered);
+            setSelected((prev) => reordered.flatMap((t) => prev.filter((s) => s.title === t.title)));
+          }}
         />
       )}
 

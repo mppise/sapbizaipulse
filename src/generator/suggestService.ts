@@ -9,6 +9,7 @@ const log = (level: 'info' | 'warn' | 'error', message: string, extra?: Record<s
 export interface ClusteredTopic {
   title: string;
   entryIds: string[];
+  contentPlan?: string[];
 }
 
 export interface SuggestResult {
@@ -19,7 +20,7 @@ export interface SuggestResult {
   message: string;
 }
 
-// [F-C02-SUGGEST] Two-pass LLM topic clustering over Newsletter-ready HANA entries
+// [F-C02-SUGGEST] Two-pass LLM topic clustering: Pass 1 extracts insight phrases per entry, Pass 2 consolidates into topics with plan steps
 export async function suggestTopics(): Promise<SuggestResult> {
   const timeframeTo = new Date();
   const timeframeFrom = await computeTimeframeFrom();
@@ -38,20 +39,20 @@ export async function suggestTopics(): Promise<SuggestResult> {
     };
   }
 
-  // Pass 1: extract candidate topics per entry
-  const candidates: { topic: string; entryId: string }[] = [];
+  // Pass 1: extract insight phrases per entry (full sentences, no body_text forwarded — token safety).
+  const candidates: { phrase: string; entryId: string }[] = [];
   for (const entry of entries) {
     try {
-      const result = await generateCompletion('extract-topics', { body_text: entry.bodyText }, { maxTokens: 256, temperature: 0.3 });
+      const result = await generateCompletion('extract-topics', { body_text: entry.bodyText }, { maxTokens: 512, temperature: 0.3 });
       const parsed = parseJsonArray<string>(result.content);
-      for (const topic of parsed) {
-        if (typeof topic === 'string' && topic.trim().length > 0) {
-          candidates.push({ topic: topic.trim(), entryId: entry.id });
+      for (const phrase of parsed) {
+        if (typeof phrase === 'string' && phrase.trim().length > 0) {
+          candidates.push({ phrase: phrase.trim(), entryId: entry.id });
         }
       }
-      log('info', 'Pass 1: extracted topics for entry', { entryId: entry.id, count: parsed.length });
+      log('info', 'Pass 1: extracted phrases for entry', { entryId: entry.id, count: parsed.length });
     } catch (err) {
-      log('warn', 'Pass 1: failed to extract topics for entry — skipping', { entryId: entry.id, error: (err as Error).message });
+      log('warn', 'Pass 1: failed to extract phrases for entry — skipping', { entryId: entry.id, error: (err as Error).message });
     }
   }
 
@@ -61,19 +62,19 @@ export async function suggestTopics(): Promise<SuggestResult> {
       timeframeFrom: timeframeFrom.toISOString(),
       timeframeTo: timeframeTo.toISOString(),
       entryCount: entries.length,
-      message: 'Topic extraction produced no candidates.',
+      message: 'Phrase extraction produced no candidates.',
     };
   }
 
   log('info', 'Pass 1 complete', { candidateCount: candidates.length });
 
-  // Pass 2: consolidate and deduplicate candidates into final topic list
+  // Pass 2: consolidate phrases into final topic list (no body_text — phrases are specific enough)
   let consolidated: ClusteredTopic[] = [];
   try {
     const result = await generateCompletion(
       'consolidate-topics',
-      { candidate_topics: JSON.stringify(candidates) },
-      { maxTokens: 2048, temperature: 0.2 }
+      { candidate_phrases: JSON.stringify(candidates) },
+      { maxTokens: 4096, temperature: 0.2 }
     );
     consolidated = parseJsonArray<ClusteredTopic>(result.content);
     log('info', 'Pass 2 complete', { topicCount: consolidated.length });

@@ -8,7 +8,7 @@ license: Apache-2.0 (see LICENSE in project root)
 # Project Status
 
 > **Overall health:** 🟢 On Track
-> **Last updated:** 2026-05-14 (rel_2026.05.14.1915)
+> **Last updated:** 2026-05-15 (rel_2026.05.15.1700)
 > **Active phase:** Deployment Readiness
 
 ---
@@ -74,7 +74,9 @@ license: Apache-2.0 (see LICENSE in project root)
 | v0.7.1 — rel_2026.05.05.1206 | ✅ Deployed | 2026-05-05 | 2026-05-05 | See deploy/rel_2026.05.05.1206/release_audit.md |
 | v0.7.2 — rel_2026.05.05.1556 | ✅ Deployed | 2026-05-05 | 2026-05-05 | See deploy/rel_2026.05.05.1556/release_audit.md |
 | v0.8.0 — rel_2026.05.12.2145 | ✅ Deployed | 2026-05-12 | 2026-05-12 | See deploy/rel_2026.05.12.2145/release_audit.md |
-| v0.9.0 — rel_2026.05.14.1915 | 🔄 Ready for deployment | 2026-05-14 | | See deploy/rel_2026.05.14.1915/release_audit.md |
+| v0.9.0 — rel_2026.05.14.1915 | ✅ Deployed | 2026-05-14 | 2026-05-14 | See deploy/rel_2026.05.14.1915/release_audit.md |
+| v1.0.0 — rel_2026.05.15.1200 | ✅ Deployed | 2026-05-15 | 2026-05-15 | See deploy/rel_2026.05.15.1200/release_audit.md |
+| v1.1.0 — rel_2026.05.15.1700 | 🔄 Ready for deployment | 2026-05-15 | | See deploy/rel_2026.05.15.1700/release_audit.md |
 
 ---
 

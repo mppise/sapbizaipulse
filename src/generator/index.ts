@@ -23,7 +23,7 @@ router.get('/topics/suggest', async (req, res) => {
 
 // [F-C02-GENERATE] Streaming SSE generation pipeline
 router.post('/generate', async (req, res) => {
-  const { topics } = req.body as { topics: TopicInput[] };
+  const { topics, timeframeFrom } = req.body as { topics: TopicInput[]; timeframeFrom?: string };
 
   if (!Array.isArray(topics) || topics.length === 0) {
     return res.status(400).json({ error: { code: 'GENERATOR_INVALID_INPUT', message: 'topics must be a non-empty array', requestId: reqId() } });
@@ -32,13 +32,15 @@ router.post('/generate', async (req, res) => {
     return res.status(400).json({ error: { code: 'GENERATOR_INVALID_INPUT', message: 'Maximum 10 topics per generation request', requestId: reqId() } });
   }
 
+  const fromDate = timeframeFrom ? new Date(timeframeFrom) : undefined;
+
   sseStart(res);
   const keepAlive = sseKeepAlive(res);
 
   try {
     const results = [];
     for (let i = 0; i < topics.length; i++) {
-      const result = await runTopicPipeline(topics[i], i, topics.length, res);
+      const result = await runTopicPipeline(topics[i], i, topics.length, res, fromDate);
       if (result) results.push(result);
     }
 

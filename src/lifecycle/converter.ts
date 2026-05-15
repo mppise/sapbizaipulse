@@ -42,14 +42,14 @@ function splitOnH3(html: string): { preamble: string; sections: { heading: strin
   return { preamble, sections };
 }
 
-function extractFirstBlockquote(html: string): string {
-  const m = html.match(/<blockquote>([\s\S]*?)<\/blockquote>/);
-  return m ? m[0] : '';
+function extractFirstBlockquoteText(html: string): string {
+  const m = html.match(/<blockquote>\s*<p>([\s\S]*?)<\/p>\s*<\/blockquote>/);
+  return m ? m[1].trim() : '';
 }
 
 function buildTopicCard(id: string, title: string, innerHtml: string): string {
   const { preamble, sections } = splitOnH3(innerHtml);
-  const teaser = extractFirstBlockquote(preamble);
+  const teaserText = extractFirstBlockquoteText(preamble);
 
   const tabSections = TAB_ORDER.map((key, i) => {
     const meta = SECTION_META[key];
@@ -78,7 +78,10 @@ function buildTopicCard(id: string, title: string, innerHtml: string): string {
     .map(({ content }) => `<div class="tab-panel">${content}</div>`)
     .join('\n');
 
-  const teaserHtml = teaser ? `<div class="topic-teaser">${teaser}</div>` : '';
+  const teaserHtml = teaserText
+    ? `<div class="topic-teaser"><p>${teaserText}</p></div>`
+    : '';
+  const footerHtml = `<span class="topic-footer"><span class="footer-cta"><i class="bi bi-arrows-expand"></i> Click to expand</span></span>`;
 
   return `
 <details class="topic-block" id="${id}">
@@ -86,11 +89,15 @@ function buildTopicCard(id: string, title: string, innerHtml: string): string {
     <span class="topic-chevron">▸</span>
     <span class="topic-title-text">${title}</span>
     ${teaserHtml}
+    ${footerHtml}
   </summary>
   <div class="topic-body">
     ${radioInputs}
     <div class="tab-bar">${tabLabels}</div>
     <div class="tab-content">${tabPanels}</div>
+  </div>
+  <div class="topic-collapse-bar">
+    <span class="footer-cta"><i class="bi bi-arrows-collapse"></i> Click to collapse</span>
   </div>
 </details>`;
 }
@@ -256,7 +263,7 @@ export function renderMarkdown(markdownContent: string): string {
   summary.topic-summary {
     display: grid;
     grid-template-columns: 1.3rem 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     column-gap: .6rem;
     padding: .9rem 1.4rem .9rem 1rem;
     cursor: pointer; list-style: none; user-select: none;
@@ -264,7 +271,7 @@ export function renderMarkdown(markdownContent: string): string {
   summary.topic-summary::-webkit-details-marker { display: none; }
 
   .topic-chevron {
-    grid-column: 1; grid-row: 1 / 3;
+    grid-column: 1; grid-row: 1 / 4;
     align-self: center;
     font-size: .81rem; color: #bbb;
     transition: transform .2s;
@@ -278,14 +285,41 @@ export function renderMarkdown(markdownContent: string): string {
   .topic-teaser {
     grid-column: 2; grid-row: 2;
     margin-top: .25rem;
+    font-size: .911rem; color: #4e5e70; line-height: 1.5;
   }
-  .topic-teaser blockquote {
-    margin: 0; padding: .2rem .65rem;
-    border-left: 2px solid #d8dde6; background: transparent;
-    font-size: .911rem; font-style: italic; color: #888;
-    border-radius: 0;
+  .topic-teaser p { margin: 0; }
+
+  /* ── Card footer (collapsed hint) ── */
+  .topic-footer {
+    grid-column: 1 / -1; grid-row: 3;
+    margin: .5rem -1rem -.9rem -1rem;
+    padding: .4rem 1.4rem .4rem 1rem;
+    font-size: .75rem; color: #6b7a8d;
+    display: flex; align-items: center; justify-content: flex-end; gap: .4rem;
   }
-  .topic-teaser blockquote p { margin: 0; }
+  .topic-footer .footer-cta {
+    display: flex; align-items: center; gap: .25rem;
+    color: var(--sap-blue); font-weight: 600;
+  }
+  .topic-footer .footer-cta i { font-size: .9rem; }
+  details.topic-block[open] .topic-footer { display: none; }
+
+  /* ── Card collapse bar (visible when open) ── */
+  .topic-collapse-bar {
+    display: none;
+    padding: .4rem 1.4rem;
+    border-top: 1px solid #e8eaed;
+    font-size: .75rem;
+    justify-content: flex-end;
+    cursor: pointer;
+  }
+  .topic-collapse-bar .footer-cta {
+    display: flex; align-items: center; gap: .25rem;
+    color: #888; font-weight: 600;
+  }
+  .topic-collapse-bar .footer-cta i { font-size: .9rem; }
+  .topic-collapse-bar:hover .footer-cta { color: var(--sap-blue); }
+  details.topic-block[open] .topic-collapse-bar { display: flex; }
 
   /* ── Topic body + tabs ── */
   .topic-body { padding: 0 1.4rem 1.8rem; }
@@ -350,22 +384,23 @@ export function renderMarkdown(markdownContent: string): string {
   }
   .nl-reader-guide p { margin: 0 0 .75rem; color: var(--sap-text); }
   .nl-reader-guide .guide-tabs {
-    display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+    display: flex; gap: .6rem 1.2rem; flex-wrap: wrap; align-items: flex-start;
     margin-top: .1rem;
   }
   .nl-reader-guide .guide-tab {
-    display: flex; align-items: center; gap: .55rem;
+    display: flex; align-items: flex-start; flex-direction: column; gap: .15rem;
     font-size: .82rem;
-    white-space: nowrap;
   }
   .nl-reader-guide .guide-tab .tab-name {
     display: flex; align-items: center; gap: .3rem;
     font-weight: 700; font-size: .75rem;
     padding: .2rem .55rem;
     border-radius: 4px;
+    white-space: nowrap;
   }
   .nl-reader-guide .guide-tab .tab-desc {
-    font-weight: 400; font-size: .8rem; color: #5a6475;
+    font-weight: 400; font-size: .78rem; color: #5a6475;
+    line-height: 1.3; padding-left: .2rem;
   }
   .nl-reader-guide .guide-tab.exec  .tab-name { background: #d6eaff; color: #004ea0; }
   .nl-reader-guide .guide-tab.strat .tab-name { background: #d4f0e2; color: #0d5c32; }
@@ -406,21 +441,21 @@ export function renderMarkdown(markdownContent: string): string {
 <div class="nl-layout">
   <main class="nl-main">
     <div class="nl-reader-guide mb-4">
-      <h3>Reading Guide</h3>
+      <h3><i class="bi bi-map-fill" style="color:var(--sap-gold);margin-right:.35rem"></i>Reading Guide<i class="bi bi-compass-fill" style="color:var(--sap-gold);margin-left:.35rem"></i></h3>
       <p>SAP Business AI Pulse is a focused, educational newsletter dedicated to SAP's AI domain. Its purpose is to keep you informed — not to advise or recommend — so you can build your own understanding of where SAP Business AI is heading and what it means for your role. Each edition covers a curated set of topics, and every topic is structured across three reading depths so you can engage at the level that matters most to you.</p>
       <p>Click any topic to expand it, then use the tabs to choose your depth.</p>
       <ol class="guide-tabs">
         <li class="guide-tab exec">
           <span class="tab-name"><i class="bi bi-binoculars"></i> The Big Picture</span>
-          <span>What happened and why it matters — written for executives and decision-makers</span>
+          <span class="tab-desc">What happened and why it matters — written for executives and decision-makers</span>
         </li>
         <li class="guide-tab strat">
           <span class="tab-name"><i class="bi bi-graph-up-arrow"></i> Strategy in Motion</span>
-          <span>Business &amp; competitive implications — written for business leaders</span>
+          <span class="tab-desc">Business &amp; competitive implications — written for business leaders</span>
         </li>
         <li class="guide-tab deep">
           <span class="tab-name"><i class="bi bi-gear"></i> Under the Hood</span>
-          <span>Technical deep-dive for practitioners — written for technical experts</span>
+          <span class="tab-desc">Technical deep-dive for practitioners — written for technical experts</span>
         </li>
       </ol>
     </div>
@@ -437,6 +472,11 @@ export function renderMarkdown(markdownContent: string): string {
 <script>
 document.querySelector('.nl-main').addEventListener('click', function(e) {
   var summary = e.target.closest('summary.topic-summary');
+  var collapseBar = e.target.closest('.topic-collapse-bar');
+  if (collapseBar) {
+    collapseBar.closest('details.topic-block').open = false;
+    return;
+  }
   if (!summary) return;
   var opening = !summary.parentElement.open;
   if (opening) {
